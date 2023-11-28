@@ -112,13 +112,13 @@ class ThermoFisherVerios(BaseMicroscope):
 
         from autoscript_sdb_microscope_client import SdbMicroscopeClient
         import autoscript_sdb_microscope_client.enumerations as sdb_enums
-        import autoscript_sdb_microscope_client.sdb_microscope_client.BitmapPatternDefinition as BitmapPatternDefinition
+        import autoscript_sdb_microscope_client.sdb_microscope_client as sdb_microscope_client
         from autoscript_sdb_microscope_client.enumerations import ImagingDevice
         from autoscript_sdb_microscope_client.structures import GrabFrameSettings
 
         self.SdbMicroscopeClient = SdbMicroscopeClient
         self.sdb_enums = sdb_enums
-        self.BitmapPatternDefinition = BitmapPatternDefinition
+        self.BitmapPatternDefinition = sdb_microscope_client.BitmapPatternDefinition
         self.ImagingDevice = ImagingDevice
         self.GrabFrameSettings = GrabFrameSettings
 
@@ -182,7 +182,10 @@ class ThermoFisherVerios(BaseMicroscope):
                 bit_depth=bit_depth,
             )
             image = self.microscope.imaging.grab_frame(settings).data
-        return image
+        if "invert" in params.keys() and params["invert"]:
+            return np.iinfo(image.dtype).max-image
+        else:
+            return image
 
     def move(self, params):
         raise NotImplementedError("No move implemented")

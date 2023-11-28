@@ -6,6 +6,7 @@ import skimage.morphology as skmorph
 import os
 import numpy as np
 import warnings
+import cv2
 
 from src import tools
 from src.online.models import UNet
@@ -21,7 +22,7 @@ class GetRescanMap(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_rescan_map(self, fast_em):
         """
-        Must return a boolean array of the same shape as fast_em
+        Must return a boolean array of the same shape as fast_em and a dictionary
         """
         pass
 
@@ -58,7 +59,7 @@ class GetRescanMapTest(GetRescanMap):
         if self.params["type"] == "half":
             mask = np.zeros_like(fast_em, dtype=bool)
             mask[: mask.shape[0] // 2] = 1
-            return mask
+            return mask,{}
         elif self.params["type"] == "random":
             mask = np.zeros_like(fast_em, dtype=bool)
             mask = mask.flatten()
@@ -70,10 +71,10 @@ class GetRescanMapTest(GetRescanMap):
                 )
             ] = 1
             mask = mask.reshape(fast_em.shape)
-            return mask
+            return mask,{}
         elif self.params["type"] == "threshold":
             thres = np.quantile(fast_em, self.params["fraction"])
-            return fast_em > thres
+            return fast_em > thres,{}
 
     def initialize(self):
         pass
@@ -91,7 +92,7 @@ class GetRescanMapMembraneErrors(GetRescanMap):
         "rescan_p_thres": 0.1,
         "rescan_ratio":None,
         "search_step": 0.01,
-        #"do_clahe": False,
+        "do_clahe": False,
     }
 
     def __init__(self, params=None):
@@ -125,11 +126,16 @@ class GetRescanMapMembraneErrors(GetRescanMap):
             mb=self.em2mb_net(trial_data)
             err=self.error_net(trial_data)
 
+        if self.params["do_clahe"]:
+            self.clahe=cv2.createCLAHE(clipLimit=255*3.0).apply
+
     def close(self):
         del self.em2mb_net
         del self.error_net
 
     def get_rescan_map(self, fast_em):
+        if self.params["do_clahe"]:
+            fast_em=self.clahe(fast_em)
         mb = tools.get_prob(fast_em, self.em2mb_net)
         error_prob = tools.get_prob(mb, self.error_net,return_dtype=np.float32)
 
@@ -145,7 +151,7 @@ class GetRescanMapMembraneErrors(GetRescanMap):
             while rescan_map.sum() > n_target:
                 thres += self.params["search_step"]
                 rescan_map = self.pad(error_prob > thres)
-        return rescan_map
+        return rescan_map,{"fast_mb":mb,"error_prob":error_prob}
 
 
     def pad(self, binim):

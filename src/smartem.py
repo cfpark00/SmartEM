@@ -19,18 +19,15 @@ class SmartEM:
         self.get_rescan_map.close()
 
     def acquire(self, params=None):
-        fast_dwt = params["fast_dwt"]
-        slow_dwt = params["slow_dwt"]
-
-        fast_em = self.microscope.get_image({"dwell_time": fast_dwt})
-        rescan_map = self.get_rescan_map(fast_em)
-        slow_em = self.microscope.get_image(
-            {"dwell_time": slow_dwt, "rescan_map": rescan_map}
-        )
+        params.update({"dwell_time": params["fast_dwt"]})
+        fast_em = self.microscope.get_image(params)
+        rescan_map, additional=self.get_rescan_map(fast_em)
+        params.update({"dwell_time": params["slow_dwt"], "rescan_map": rescan_map})
+        slow_em = self.microscope.get_image(params)
 
         if "plot" in params and params["plot"]:
-            show_smart(fast_em, slow_em, rescan_map, fast_dwt, slow_dwt)
-        return fast_em, slow_em, rescan_map
+            show_smart(fast_em, slow_em, rescan_map, fast_dwt=params["fast_dwt"], slow_dwt=params["slow_dwt"])
+        return fast_em, slow_em, rescan_map, additional
 
     def acquire_to(self, fol_path, params=None):
         fast_em, slow_em, rescan_map = self.acquire(params)
