@@ -3,8 +3,7 @@ import numpy as np
 import os
 
 from src import tools
-
-
+import copy
 class SmartEM:
     def __init__(self, microscope, get_rescan_map):
         self.microscope = microscope
@@ -39,6 +38,18 @@ class SmartEM:
             os.path.join(fol_path, "rescan_map.png"),
             (rescan_map * 255).astype(np.uint8),
         )
+
+    def acquire_grid(self, xyzrt, theta, nx, ny, dx, dy, params):
+        R = np.array([[np.cos(theta), np.sin(theta)], [np.sin(theta), -np.cos(theta)]])
+        x, y, z, r, t =  xyzrt
+        c=0
+        for ix in range(nx):
+            for iy in range(ny):
+                coordinate = np.array([dx*ix, dy*iy])@R+np.array([x,y])
+                self.microscope.move(x=coordinate[0],y=coordinate[1],z=z,r=r,t=t)
+                fast_em, slow_em, rescan_map, additional=self.acquire(params=copy.deepcopy(params))
+                print(c)
+                c+=1
 
     def __str__(self):
         return (
