@@ -50,6 +50,7 @@ class SmartEM:
                 fast_em, slow_em, rescan_map, additional=self.acquire(params=copy.deepcopy(params))
                 print(c)
                 c+=1
+        print("Grid Acquired")
 
     def __str__(self):
         return (
