@@ -1,11 +1,14 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import copy
+import scipy.io as sio
 
 from src import tools
-import copy
+
 class SmartEM:
-    def __init__(self, microscope, get_rescan_map):
+    def __init__(self, microscope, get_rescan_map,params):
+        self.params=params
         self.microscope = microscope
         self.get_rescan_map = get_rescan_map
 
@@ -13,27 +16,31 @@ class SmartEM:
         self.microscope.initialize()
         self.get_rescan_map.initialize()
 
+    def prepare_acquisition(self):
+        self.microscope.prepare_acquisition()
+
     def close(self):
         self.microscope.close()
         self.get_rescan_map.close()
 
     def acquire(self, params=None):
+        params=copy.deepcopy(params)
         params.update({"dwell_time": params["fast_dwt"]})
-        fast_em = self.microscope.get_image(params)
+        fast_em = self.microscope.get_image(params=params)
         rescan_map, additional=self.get_rescan_map(fast_em)
         params.update({"dwell_time": params["slow_dwt"], "rescan_map": rescan_map})
-        slow_em = self.microscope.get_image(params)
+        rescan_em = self.microscope.get_image(params=params)
 
         if "plot" in params and params["plot"]:
-            show_smart(fast_em, slow_em, rescan_map, fast_dwt=params["fast_dwt"], slow_dwt=params["slow_dwt"])
-        return fast_em, slow_em, rescan_map, additional
+            show_smart(fast_em, rescan_em, rescan_map, fast_dwt=params["fast_dwt"], slow_dwt=params["slow_dwt"])
+        return fast_em, rescan_em, rescan_map, additional
 
     def acquire_to(self, fol_path, params=None):
-        fast_em, slow_em, rescan_map = self.acquire(params)
+        fast_em, rescan_em, rescan_map = self.acquire(params)
         if not os.path.exists(fol_path):
             os.mkdir(fol_path)
         tools.write_im(os.path.join(fol_path, "fast_em.png"), fast_em)
-        tools.write_im(os.path.join(fol_path, "slow_em.png"), slow_em)
+        tools.write_im(os.path.join(fol_path, "rescan_em.png"), rescan_em)
         tools.write_im(
             os.path.join(fol_path, "rescan_map.png"),
             (rescan_map * 255).astype(np.uint8),
@@ -42,15 +49,85 @@ class SmartEM:
     def acquire_grid(self, xyzrt, theta, nx, ny, dx, dy, params):
         R = np.array([[np.cos(theta), np.sin(theta)], [np.sin(theta), -np.cos(theta)]])
         x, y, z, r, t =  xyzrt
-        c=0
+
+        return_dict={}
         for ix in range(nx):
             for iy in range(ny):
                 coordinate = np.array([dx*ix, dy*iy])@R+np.array([x,y])
                 self.microscope.move(x=coordinate[0],y=coordinate[1],z=z,r=r,t=t)
-                fast_em, slow_em, rescan_map, additional=self.acquire(params=copy.deepcopy(params))
-                print(c)
-                c+=1
-        print("Grid Acquired")
+                fast_em, rescan_em, rescan_map, additional = self.acquire(params=params)
+                return_dict[(ix, iy)] = {"fast_em": fast_em, "rescan_em": rescan_em, "rescan_map": rescan_map, "additional": additional}
+        return return_dict
+
+    def acquire_many_grids(self, coordinates, imaging_params, save_directory):
+        n_targets=len(coordinates)
+
+        os.makedirs(save_directory, exist_ok=True)
+        fast_fol = os.path.join(save_directory, "fast")
+        os.makedirs(fast_fol, exist_ok=True)
+        rescan_fol = os.path.join(save_directory, "rescan")
+        os.makedirs(rescan_fol, exist_ok=True)
+        rescan_map_fol = os.path.join(save_directory, "rescan_map")
+        os.makedirs(rescan_map_fol, exist_ok=True)
+        fast_mb_fol = os.path.join(save_directory, "fast_mb")
+        os.makedirs(fast_mb_fol, exist_ok=True)
+
+        for i in range(n_targets):
+            fast_fol_=os.path.join(fast_fol,"location_"+str(i).zfill(5))
+            os.makedirs(fast_fol_, exist_ok=True)
+            rescan_fol_ = os.path.join(rescan_fol, "location_" + str(i).zfill(5))
+            os.makedirs(rescan_fol_, exist_ok=True)
+            rescan_map_fol_ = os.path.join(rescan_map_fol, "location_" + str(i).zfill(5))
+            os.makedirs(rescan_map_fol_, exist_ok=True)
+            fast_mb_fol_ = os.path.join(fast_mb_fol, "location_" + str(i).zfill(5))
+            os.makedirs(fast_mb_fol_, exist_ok=True)
+
+            xyzrt = coordinates[i]
+            theta = imaging_params["scan_rotations"][i]
+
+            params = {"fast_dwt": 50e-9, "slow_dwt": 500e-9, "plot": False, "invert": True, "theta": theta,
+                      "resolution": (2048, 1768),
+                      "pixel_size": 4.0e-9}
+            fov = np.array(params["resolution"]) * params["pixel_size"]
+            grid_results = self.acquire_grid(xyzrt=xyzrt, theta=theta, nx=2, ny=2, dx=fov[0] * 0.8,
+                                                    dy=fov[1] * 0.8, params=params)
+            for key, value in grid_results.items():
+                xi, yi=key
+                tools.write_im(os.path.join(fast_fol_, "location_" + str(i).zfill(5) + f"_xi_{xi}_yi_{yi}.png"), value["fast_em"])
+                tools.write_im(os.path.join(rescan_fol_, "location_" + str(i).zfill(5)) + f"_xi_{xi}_yi_{yi}.png", value["rescan_em"])
+                tools.write_im(os.path.join(rescan_map_fol_, "location_" + str(i).zfill(5)) + f"_xi_{xi}_yi_{yi}.png", value["rescan_map"].astype(np.uint8)*255)
+                tools.write_im(os.path.join(fast_mb_fol_, "location_" + str(i).zfill(5)) + f"_xi_{xi}_yi_{yi}.png", value["additional"]["fast_mb"])
+
+            if i==2:
+                break
+    def acquire_many_grids_from_mat(self,target_mat,save_directory):
+        target_mat = "D:\\Users\\Lab\\Documents\\SmartEM\\data\\Mouse_NK1\\wafer_calibration\\w03_1mm_nov20.mat"
+        target_mat = sio.loadmat(target_mat)
+        n_targets = target_mat["nroftargets"].item()
+        imaging = np.concatenate(target_mat["target"]["imaging"][:, 0], axis=0)
+        stage_values = np.concatenate(target_mat["target"]["tempstagecoords"][:, 0], axis=0)
+
+        imaging_params = {}
+        imaging_params["brightness"] = np.concatenate(imaging["brightness"][:, 0], axis=0)[:, 0]
+        imaging_params["contrasts"] = np.concatenate(imaging["contrast"][:, 0], axis=0)[:, 0]
+        imaging_params["focus_val"] = np.concatenate(imaging["focus"][:, 0], axis=0)[:, 0]
+        stigx = np.concatenate(imaging["stigx"][:, 0], axis=0)[:, 0]
+        stigy = np.concatenate(imaging["stigy"][:, 0], axis=0)[:, 0]
+        imaging_params["stigmations"] = np.stack([stigx, stigy], axis=1)
+        imaging_params["scan_rotations"] = np.concatenate(target_mat["target"]["scanrot"][:, 0], axis=0)[:, 0]
+
+        rs = np.concatenate(stage_values["rpos_rad"][:, 0], axis=0)[:, 0]
+        ts = np.concatenate(stage_values["tpos_rad"][:, 0], axis=0)[:, 0]
+        xs = np.concatenate(stage_values["xpos_m"][:, 0], axis=0)[:, 0]
+        ys = np.concatenate(stage_values["ypos_m"][:, 0], axis=0)[:, 0]
+        zs = np.concatenate(stage_values["zpos_m"][:, 0], axis=0)[:, 0]
+
+        coordinates = np.stack([xs, ys, zs, rs, ts], axis=1)
+        assert len(coordinates)==n_targets
+
+        #coordinates, imaging_params are the parsed outputs
+
+        self.acquire_many_grids(coordinates=coordinates,imaging_params=imaging_params,save_directory=save_directory)
 
     def __str__(self):
         return (

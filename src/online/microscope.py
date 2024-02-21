@@ -208,6 +208,7 @@ class ThermoFisherVerios(BaseMicroscope):
             warnings.warn("Auto Stig failed: "+str(excp))
 
     def get_image(self, params):
+        params=copy.deepcopy(params)
         resolution=params["resolution"]
         pixel_size=params["pixel_size"]
         fov = (resolution[0] * pixel_size, resolution[1] * pixel_size)
