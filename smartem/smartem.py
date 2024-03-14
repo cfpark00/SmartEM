@@ -8,22 +8,50 @@ from smartem import tools
 
 
 class SmartEM:
+    """
+    SmartEM class to acquire with dynamic dwell time allocation.
+
+    Args:
+    microscope: Microscope, microscope object
+    get_rescan_map: GetRescanMap, get_rescan_map object
+    """
     def __init__(self, microscope, get_rescan_map):
         self.microscope = microscope
         self.get_rescan_map = get_rescan_map
 
     def initialize(self):
+        """
+        Initialize the microscope and the get_rescan_map object.
+        """
         self.microscope.initialize()
         self.get_rescan_map.initialize()
 
     def prepare_acquisition(self):
+        """
+        Prepare the microscope for acquisition.
+        """
         self.microscope.prepare_acquisition()
 
     def close(self):
+        """
+        Close the microscope and the get_rescan_map object.
+        """
         self.microscope.close()
         self.get_rescan_map.close()
 
     def acquire(self, params):
+        """
+        Acquire with params, twice with fast and slow dwell times.
+
+        Args:
+        params: dict, parameters Required: fast_dwt, slow_dwt
+
+        Returns:
+        fast_em: np.ndarray, fast electron microscope image
+        rescan_em: np.ndarray, rescan electron microscope image
+        rescan_map: np.ndarray, rescan map
+        additional: dict, additional information including figures or results from get_rescan_map
+        """
         params = copy.deepcopy(params)
         params.update({"dwell_time": params["fast_dwt"]})
         fast_em = self.microscope.get_image(params=params)
@@ -40,11 +68,21 @@ class SmartEM:
                 slow_dwt=params["slow_dwt"],
             )
             additional["fig"] = fig
-        if params["verbose"] > 0:
+        if "verbose" in params and params["verbose"] > 0:
             print(f"Acquired fast_em, rescan_em, rescan_map")
         return fast_em, rescan_em, rescan_map, additional
 
     def acquire_to(self, save_dir, params):
+        """
+        Acquire with params and save to save_dir.
+
+        Args:
+        save_dir: str, directory to save
+        params: dict, parameters Required: fast_dwt, slow_dwt, verbose
+
+        Returns:
+        None
+        """
         fast_em, rescan_em, rescan_map, additional = self.acquire(params)
         if not os.path.exists(save_dir):
             os.makedirs(save_dir, exist_ok=True)
@@ -56,10 +94,25 @@ class SmartEM:
         )
         if "fig" in additional:
             additional["fig"].savefig(os.path.join(save_dir, "fig.png"))
-        if params["verbose"] > 0:
+        if "verbose" in params and params["verbose"] > 0:
             print(f"Saved to {save_dir}")
 
     def acquire_grid(self, xyzrt, theta, nx, ny, dx, dy, params):
+        """
+        Acquire a grid of images with params.
+
+        Args:
+        xyzrt: np.ndarray, (5,) x, y, z, r, t
+        theta: float, rotation angle
+        nx: int, number of grid points in x
+        ny: int, number of grid points in y
+        dx: float, grid spacing in x
+        dy: float, grid spacing in y
+        params: dict, parameters Required: fast_dwt, slow_dwt
+
+        Returns:
+        return_dict: dict, dictionary of acquired images
+        """
         params["theta"] = theta
         R = np.array([[np.cos(theta), np.sin(theta)], [np.sin(theta), -np.cos(theta)]])
         x, y, z, r, t = xyzrt
@@ -79,6 +132,18 @@ class SmartEM:
         return return_dict
 
     def acquire_many_grids(self, coordinates, imaging_params, save_dir, params):
+        """
+        Acquire many grids with coordinates and imaging_params and save to save_dir.
+
+        Args:
+        coordinates: np.ndarray, (n, 5) x, y, z, r, t
+        imaging_params: dict, imaging parameters
+        save_dir: str, directory to save
+        params: dict, parameters Required: fast_dwt, slow_dwt, verbose
+
+        Returns:
+        None
+        """
         n_targets = len(coordinates)
 
         os.makedirs(save_dir, exist_ok=True)
@@ -145,6 +210,16 @@ class SmartEM:
                 break
 
     def acquire_many_grids_from_mat(self, target_mat, save_dir):
+        """
+        Acquire many grids from a .mat file and save to save_dir.
+
+        Args:
+        target_mat: str, path to the .mat file
+        save_dir: str, directory to save
+
+        Returns:
+        None
+        """
         target_mat = "D:\\Users\\Lab\\Documents\\SmartEM\\data\\Mouse_NK1\\wafer_calibration\\w03_1mm_nov20.mat"
         target_mat = sio.loadmat(target_mat)
         n_targets = target_mat["nroftargets"].item()
@@ -195,6 +270,19 @@ class SmartEM:
 
 
 def show_smart(fast_em, slow_em, rescan_map, fast_dwt, slow_dwt):
+    """
+    Make a figure to show the results of SmartEM.
+
+    Args:
+    fast_em: np.ndarray, fast electron microscope image
+    slow_em: np.ndarray, slow electron microscope image
+    rescan_map: np.ndarray, rescan map
+    fast_dwt: float, fast dwell time
+    slow_dwt: float, slow dwell time
+
+    Returns:
+    fig: plt.Figure, figure
+    """
     fig = plt.figure(figsize=(20, 15))
     plt.subplot(2, 3, 1)
     plt.imshow(fast_em, interpolation="none", cmap="gray")
