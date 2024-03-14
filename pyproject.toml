@@ -25,3 +25,5 @@ dependencies = [
     "torchvision==0.17.0"
 ]
 
+[tool.setuptools]
+packages = ["smartem"]

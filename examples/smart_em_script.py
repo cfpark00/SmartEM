@@ -1,14 +1,16 @@
-#Example script using SmartEM
-import os
+# Example script using SmartEM
+# See the main function at the end of the file for the command line arguments
+# Author: Core Francisco Park, corefranciscopark@g.harvard.edu
+############################################
 
+#basic imports
+import os
 import numpy as np
 
 #add the base SmartEM path to the python path
-import sys
-sys.path.append('..')
-
-from src import smartem,tools
-from src.online import microscope,get_rescan_maps
+import smartem
+import smartem.tools as tools
+from smartem.online import microscope#, get_rescan_maps
 
 microscope_type="verios"
 get_rescan_map_type="membrane_errors"
