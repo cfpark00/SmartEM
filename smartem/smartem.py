@@ -4,7 +4,7 @@ import os
 import copy
 import scipy.io as sio
 
-from src import tools
+from smartem import tools
 
 class SmartEM:
     def __init__(self, microscope, get_rescan_map,params):
