@@ -20,5 +20,9 @@ pip install -e .
 | File     | Commented |
 | -------- | --------- |
 | examples/smart_em_script.py  | YES       |
-| smartem/online | NO        |
+| examples/smartem/smartem.py  | YES       |
+| examples/smartem/tools.py  | YES       |
+| smartem/online/microscope.py  | NO        |
+| smartem/online/get_rescan_maps.py | NO        |
+| smartem/online/models/UNet.py | NO        |
 | smartem/offline    | NO        |
