@@ -1,2 +1,2 @@
 # SmartEM
-Smart Electron Microscopy: Machine Learning Guided acquisition
+SmartEM: Machine Learning Guided Electron Microscopy Acquisition for Faster Connectomics

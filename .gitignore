@@ -1,4 +1,7 @@
 __*
 *.pth
+*egg*
+build/
+dist/
 
 
