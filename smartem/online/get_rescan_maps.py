@@ -8,8 +8,8 @@ import numpy as np
 import warnings
 import cv2
 
-from src import tools
-from src.online.models import UNet
+from smartem import tools
+from .models import UNet
 
 
 class GetRescanMap(metaclass=abc.ABCMeta):

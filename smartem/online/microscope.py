@@ -6,7 +6,7 @@ import numpy as np
 import os
 import warnings
 
-from src import tools
+from smartem import tools
 
 import copy
 
