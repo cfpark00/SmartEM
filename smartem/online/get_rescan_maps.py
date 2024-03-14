@@ -59,7 +59,7 @@ class GetRescanMapTest(GetRescanMap):
         if self.params["type"] == "half":
             mask = np.zeros_like(fast_em, dtype=bool)
             mask[: mask.shape[0] // 2] = 1
-            return mask,{}
+            return mask, {}
         elif self.params["type"] == "random":
             mask = np.zeros_like(fast_em, dtype=bool)
             mask = mask.flatten()
@@ -71,10 +71,10 @@ class GetRescanMapTest(GetRescanMap):
                 )
             ] = 1
             mask = mask.reshape(fast_em.shape)
-            return mask,{}
+            return mask, {}
         elif self.params["type"] == "threshold":
             thres = np.quantile(fast_em, self.params["fraction"])
-            return fast_em > thres,{}
+            return fast_em > thres, {}
 
     def initialize(self):
         pass
@@ -90,7 +90,7 @@ class GetRescanMapMembraneErrors(GetRescanMap):
         "device": "auto",
         "pad": 0,
         "rescan_p_thres": 0.1,
-        "rescan_ratio":None,
+        "rescan_ratio": None,
         "search_step": 0.01,
         "do_clahe": False,
     }
@@ -104,7 +104,9 @@ class GetRescanMapMembraneErrors(GetRescanMap):
         assert self.params["error_net"] is not None
         assert os.path.exists(self.params["em2mb_net"])
         assert os.path.exists(self.params["error_net"])
-        assert (self.params["rescan_ratio"] is not None) or (self.params["rescan_p_thres"] is not None)
+        assert (self.params["rescan_ratio"] is not None) or (
+            self.params["rescan_p_thres"] is not None
+        )
 
     def initialize(self):
         if self.params["device"] == "auto":
@@ -121,13 +123,15 @@ class GetRescanMapMembraneErrors(GetRescanMap):
         self.error_net.eval()
         self.error_net.to(self.device)
 
-        trial_data=torch.randn((1,1,256,256),device=self.device,dtype=torch.float32)
+        trial_data = torch.randn(
+            (1, 1, 256, 256), device=self.device, dtype=torch.float32
+        )
         with torch.no_grad():
-            mb=self.em2mb_net(trial_data)
-            err=self.error_net(trial_data)
+            mb = self.em2mb_net(trial_data)
+            err = self.error_net(trial_data)
 
         if self.params["do_clahe"]:
-            self.clahe=cv2.createCLAHE(clipLimit=255*3.0).apply
+            self.clahe = cv2.createCLAHE(clipLimit=255 * 3.0).apply
 
     def close(self):
         del self.em2mb_net
@@ -135,9 +139,9 @@ class GetRescanMapMembraneErrors(GetRescanMap):
 
     def get_rescan_map(self, fast_em):
         if self.params["do_clahe"]:
-            fast_em=self.clahe(fast_em)
+            fast_em = self.clahe(fast_em)
         mb = tools.get_prob(fast_em, self.em2mb_net)
-        error_prob = tools.get_prob(mb, self.error_net,return_dtype=np.float32)
+        error_prob = tools.get_prob(mb, self.error_net, return_dtype=np.float32)
 
         if self.params["rescan_ratio"] is None:
             rescan_map = self.pad(error_prob > self.params["rescan_p_thres"])
@@ -151,8 +155,7 @@ class GetRescanMapMembraneErrors(GetRescanMap):
             while rescan_map.sum() > n_target:
                 thres += self.params["search_step"]
                 rescan_map = self.pad(error_prob > thres)
-        return rescan_map,{"fast_mb":mb,"error_prob":error_prob}
-
+        return rescan_map, {"fast_mb": mb, "error_prob": error_prob}
 
     def pad(self, binim):
         if self.params["pad"] == 0:

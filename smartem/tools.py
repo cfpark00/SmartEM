@@ -56,14 +56,16 @@ def get_logprob(logit):
 
 def get_prob(image, net, return_dtype=np.uint8):
     image_dtype = image.dtype
-    assert image_dtype == np.uint8 or image_dtype == np.uint16 or image_dtype == np.float32
+    assert (
+        image_dtype == np.uint8 or image_dtype == np.uint16 or image_dtype == np.float32
+    )
     assert return_dtype == np.uint8 or return_dtype == np.float32
     import torch
 
     if image_dtype == np.uint8 or image_dtype == np.uint16:
         image_torch = torch.tensor(int_to_float(image, dtype=np.float32))[None, None]
     else:
-        image_torch=torch.tensor(image,dtype=torch.float32)[None,None]
+        image_torch = torch.tensor(image, dtype=torch.float32)[None, None]
     with torch.no_grad():
         mask_logits = net(
             image_torch.to(device=next(net.parameters()).device, dtype=torch.float32)
@@ -570,13 +572,13 @@ class SmartEM:
             self.error_net = UNet.UNet(
                 n_channels=1,
                 n_classes=(2 if self.params["error_net_type"] == "cat" else 1),
-                **self.params["error_net_params"]
+                **self.params["error_net_params"],
             )
         elif self.params["error_net_package"] == "UNet2":
             self.error_net = UNet2.UNet(
                 n_channels=1,
                 n_classes=(2 if self.params["error_net_type"] == "cat" else 1),
-                **self.params["error_net_params"]
+                **self.params["error_net_params"],
             )
         else:
             assert False, "not an option"

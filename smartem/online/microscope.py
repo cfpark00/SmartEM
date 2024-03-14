@@ -10,8 +10,13 @@ from smartem import tools
 
 import copy
 
+
 class BaseMicroscope(metaclass=abc.ABCMeta):
     def __init__(self):
+        pass
+
+    @abc.abstractmethod
+    def prepare_acquisition(self):
         pass
 
     @abc.abstractmethod
@@ -43,6 +48,9 @@ class FakeRandomMicroscope(BaseMicroscope):
         self.params = self.default_params
         if params is not None:
             self.params.update(params)
+
+    def prepare_acquisition(self):
+        pass
 
     def get_image(self, params):
         W = params["W"] if "W" in params else 1024
@@ -80,6 +88,9 @@ class FakeDataMicroscope(BaseMicroscope):
                 self.params["images_ns"][key]
             ), f"File {self.params['images_ns'][key]} does not exist"
 
+    def prepare_acquisition(self):
+        pass
+
     def get_image(self, params):
         dwt = params["dwell_time"]
         dwt_ns = int(dwt * 1e9)
@@ -101,12 +112,14 @@ class FakeDataMicroscope(BaseMicroscope):
 
 
 class ThermoFisherVerios(BaseMicroscope):
-    default_params = {"tempfile": "./tempfile.bmp",
-                      "AS_final_horizontal_field_width_stig": 5.0e-6,
-                      "AF_final_horizontal_field_width_focus": 8.0e-6,
-                      "slow_dwt_focus_ns": 1000,
-                      "fast_dwt_contrast_ns": 100,
-                      }
+    default_params = {
+        "tempfile": "./tempfile.bmp",
+        "AS_final_horizontal_field_width_stig": 5.0e-6,
+        "AF_final_horizontal_field_width_focus": 8.0e-6,
+        "slow_dwt_focus_ns": 1000,
+        "fast_dwt_contrast_ns": 100,
+    }
+
     def __init__(self, params=None):
         super().__init__()
         self.params = self.default_params
@@ -125,7 +138,7 @@ class ThermoFisherVerios(BaseMicroscope):
         import autoscript_sdb_microscope_client.structures as sdb_structures
         from autoscript_sdb_microscope_client.structures import GrabFrameSettings
 
-        self.sdb_client=sdb_client
+        self.sdb_client = sdb_client
         self.SdbMicroscopeClient = SdbMicroscopeClient
         self.sdb_enums = sdb_enums
         self.BitmapPatternDefinition = sdb_microscope_client.BitmapPatternDefinition
@@ -159,10 +172,14 @@ class ThermoFisherVerios(BaseMicroscope):
         self.auto_focus()
         self.auto_contrast_brightness()
 
-    def auto_focus(self,baseline=False):
+    def auto_focus(self, baseline=False):
         baselineFocus = self.microscope.beams.electron_beam.working_distance.value
-        AF_final_horizontal_field_width_focus=self.params["AF_final_horizontal_field_width_focus"]
-        self.microscope.beams.electron_beam.horizontal_field_width.value = AF_final_horizontal_field_width_focus
+        AF_final_horizontal_field_width_focus = self.params[
+            "AF_final_horizontal_field_width_focus"
+        ]
+        self.microscope.beams.electron_beam.horizontal_field_width.value = (
+            AF_final_horizontal_field_width_focus
+        )
         try:
             if baseline:
                 self.microscope.auto_functions.run_auto_focus()
@@ -172,19 +189,25 @@ class ThermoFisherVerios(BaseMicroscope):
                 af_settings.resolution = "1024x884"
                 af_settings.dwell_time = self.params["slow_dwt_focus_ns"] * 1e-9
                 af_settings.line_integration = 1
-                af_settings.reduced_area = self.sdb_structures.Rectangle(0.1, 0.1, 0.8, 0.02)
+                af_settings.reduced_area = self.sdb_structures.Rectangle(
+                    0.1, 0.1, 0.8, 0.02
+                )
                 af_settings.working_distance_step = 100e-9
                 self.microscope.auto_functions.run_auto_focus(af_settings)
             newFocus = self.microscope.beams.electron_beam.working_distance.value
-            if (newFocus * 1000) < 5.5 : #@YARON add explanation
-                self.microscope.beams.electron_beam.working_distance.value = baselineFocus
+            if (newFocus * 1000) < 5.5:  # @YARON add explanation
+                self.microscope.beams.electron_beam.working_distance.value = (
+                    baselineFocus
+                )
         except Exception as excp:
-            warnings.warn("Auto Focus failed "+str(excp)+" proceeding with baseline focus")
+            warnings.warn(
+                "Auto Focus failed " + str(excp) + " proceeding with baseline focus"
+            )
             self.microscope.beams.electron_beam.working_distance.value = baselineFocus
 
-    def auto_contrast_brightness(self,baseline=False):
+    def auto_contrast_brightness(self, baseline=False):
         if baseline:
-            #need to run twice for @YARON add reason
+            # need to run twice for @YARON add reason
             self.microscope.auto_functions.run_auto_cb()
             self.microscope.auto_functions.run_auto_cb()
         else:
@@ -198,26 +221,32 @@ class ThermoFisherVerios(BaseMicroscope):
 
     def auto_stig(self):
         try:
-            AS_final_horizontal_field_width_stig=self.params["AS_final_horizontal_field_width_stig"]
+            AS_final_horizontal_field_width_stig = self.params[
+                "AS_final_horizontal_field_width_stig"
+            ]
             as_settings = self.sdb_structures.RunAutoStigmatorSettings()
             as_settings.method = self.sdb_enums.AutoFunctionMethod.ONG_ET_AL_GENERAL
             as_settings.reduced_area = self.sdb_structures.Rectangle(0.1, 0.1, 0.8, 0.8)
-            self.microscope.beams.electron_beam.horizontal_field_width.value = AS_final_horizontal_field_width_stig;
+            self.microscope.beams.electron_beam.horizontal_field_width.value = (
+                AS_final_horizontal_field_width_stig
+            )
             self.microscope.auto_functions.run_auto_stigmator(as_settings)
         except Exception as excp:
-            warnings.warn("Auto Stig failed: "+str(excp))
+            warnings.warn("Auto Stig failed: " + str(excp))
 
     def get_image(self, params):
-        params=copy.deepcopy(params)
-        resolution=params["resolution"]
-        pixel_size=params["pixel_size"]
+        params = copy.deepcopy(params)
+        resolution = params["resolution"]
+        pixel_size = params["pixel_size"]
         fov = (resolution[0] * pixel_size, resolution[1] * pixel_size)
 
         self.microscope.beams.electron_beam.scanning.resolution.value = (
             "%dx%d" % resolution
         )
         if "theta" in params.keys():
-            self.microscope.beams.electron_beam.scanning.rotation.value=params["theta"]
+            self.microscope.beams.electron_beam.scanning.rotation.value = params[
+                "theta"
+            ]
         self.microscope.imaging.set_active_view(1)
         self.microscope.imaging.set_active_device(self.ImagingDevice.ELECTRON_BEAM)
         self.microscope.beams.electron_beam.horizontal_field_width.value = fov[0]
@@ -254,7 +283,7 @@ class ThermoFisherVerios(BaseMicroscope):
             )
             image = self.microscope.imaging.grab_frame(settings).data
         if "invert" in params.keys() and params["invert"]:
-            return np.iinfo(image.dtype).max-image
+            return np.iinfo(image.dtype).max - image
         else:
             return image
 
@@ -285,14 +314,16 @@ class ThermoFisherVerios(BaseMicroscope):
     end
     """
 
-    def move(self,x,y,z=None,r=None,t=None):
+    def move(self, x, y, z=None, r=None, t=None):
         if z is None or r is None or t is None:
-            p=self.microscope.specimen.stage.current_position
+            p = self.microscope.specimen.stage.current_position
             if z is None:
-                z=p.z
+                z = p.z
             if r is None:
-                r=p.r
+                r = p.r
             if t is None:
-                t=p.t
-        p2=self.sdb_structures.StagePosition(x=x, y=y, z=z, r=r, t=t, coordinate_system="Raw")
+                t = p.t
+        p2 = self.sdb_structures.StagePosition(
+            x=x, y=y, z=z, r=r, t=t, coordinate_system="Raw"
+        )
         self.microscope.specimen.stage.absolute_move(p2)
