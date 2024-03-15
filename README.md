@@ -9,6 +9,12 @@ git clone https://github.com/cfpark00/SmartEM.git
 cd SmartEM
 python3.10 -m venv SmartEM_env
 source SmartEM_env/bin/activate
+```
+
+Now install pytorch and torchvision from the [official website](https://pytorch.org/get-started/locally/)
+
+Now run:
+```
 pip install -e .
 ```
 

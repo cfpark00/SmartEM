@@ -1,5 +1,4 @@
 # A simple test importing every module
-
 import smartem
 import smartem.smartem
 import smartem.tools
