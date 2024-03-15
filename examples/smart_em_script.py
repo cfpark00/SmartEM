@@ -6,7 +6,7 @@
 # basic imports
 import os
 import numpy as np
-import matplotlib
+import json
 
 # add the base SmartEM path to the python path
 from smartem.smartem import SmartEM
@@ -70,8 +70,8 @@ def get_get_rescan_map(
     elif get_rescan_map_type == "membrane_errors":
         # This is the get_rescan_map using ML
         params = {
-            "em2mb_net": "../pretrained_models/em2mb_best.pth",
-            "error_net": "../pretrained_models/error_best.pth",
+            "em2mb_net": "./pretrained_models/em2mb_best.pth",
+            "error_net": "./pretrained_models/error_best.pth",
             "device": "auto",
             "pad": 40,
             "rescan_p_thres": 0.1,
@@ -89,7 +89,8 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--microscope-type", type=str, default="fake")
+    parser.add_argument("--microscope-type", type=str, default="fakedata")
+    parser.add_argument("--params-path", type=str, default="default_params.json")
     parser.add_argument("--get-rescan-map-type", type=str, default="membrane_errors")
     parser.add_argument(
         "--target-mat",
@@ -107,6 +108,9 @@ if __name__ == "__main__":
         "fakedata",
     ], "Unknown microscope type, choose from 'verios', 'fake', 'fakedata'"
 
+    params_path = args.params_path
+    assert os.path.exists(params_path), f"params_path {params_path} does not exist"
+
     get_rescan_map_type = args.get_rescan_map_type
     assert get_rescan_map_type in [
         "test",
@@ -119,6 +123,10 @@ if __name__ == "__main__":
 
     # Get the microscope and get_rescan_map objects
     my_microscope = get_microscope(microscope_type)
+    with open(params_path,"r") as f:
+        params=json.load(f)
+        if "resolution" in params:
+            params["resolution"]=tuple(params["resolution"])
     get_rescan_map = get_get_rescan_map(get_rescan_map_type)
 
     # Initialize Microscope
@@ -129,19 +137,10 @@ if __name__ == "__main__":
     print()
 
     print("Prepare acquisition.....")
-    my_smart_em.prepare_acquisition()
+    #my_smart_em.prepare_acquisition()
 
     print("Acquiring...")
     #Set some parameters
-    params = {
-        "fast_dwt": 50e-9,#Fast Dwell Time in seconds
-        "slow_dwt": 500e-9,#Slow Dwell Time in seconds
-        "plot": True,#To plot or save the plot
-        "invert": True,#Invert the image 0~255 to 255~0
-        "resolution": (2048, 1768),#Resolution of the image(size)
-        "pixel_size": 4.0e-9,#Pixel size in meters
-        "verbose": 1,#Verbosity level: 0 for nothing, 1 for some, 2 for all
-    }
     if microscope_type == "verios":
         my_smart_em.acquire_many_grids_from_mat(
             target_mat=target_mat, save_dir=save_dir, params=params

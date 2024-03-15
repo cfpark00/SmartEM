@@ -131,15 +131,14 @@ class SmartEM:
                 }
         return return_dict
 
-    def acquire_many_grids(self, coordinates, imaging_params, save_dir, params):
+    def acquire_many_grids(self, coordinates, params, save_dir):
         """
-        Acquire many grids with coordinates and imaging_params and save to save_dir.
+        Acquire many grids with coordinates and params and save to save_dir.
 
         Args:
         coordinates: np.ndarray, (n, 5) x, y, z, r, t
-        imaging_params: dict, imaging parameters
+        params: dict, imaging parameters
         save_dir: str, directory to save
-        params: dict, parameters Required: fast_dwt, slow_dwt, verbose
 
         Returns:
         None
@@ -169,7 +168,7 @@ class SmartEM:
             os.makedirs(fast_mb_fol_, exist_ok=True)
 
             xyzrt = coordinates[i]
-            theta = imaging_params["scan_rotations"][i]
+            theta = params["scan_rotations"][i]
 
             fov = np.array(params["resolution"]) * params["pixel_size"]
             grid_results = self.acquire_grid(
@@ -206,10 +205,7 @@ class SmartEM:
                     value["additional"]["fast_mb"],
                 )
 
-            if i == 2:
-                break
-
-    def acquire_many_grids_from_mat(self, target_mat, save_dir):
+    def acquire_many_grids_from_mat(self, target_mat, params, save_dir):
         """
         Acquire many grids from a .mat file and save to save_dir.
 
@@ -228,20 +224,19 @@ class SmartEM:
             target_mat["target"]["tempstagecoords"][:, 0], axis=0
         )
 
-        imaging_params = {}
-        imaging_params["brightness"] = np.concatenate(
+        params["brightness"] = np.concatenate(
             imaging["brightness"][:, 0], axis=0
         )[:, 0]
-        imaging_params["contrasts"] = np.concatenate(imaging["contrast"][:, 0], axis=0)[
+        params["contrasts"] = np.concatenate(imaging["contrast"][:, 0], axis=0)[
             :, 0
         ]
-        imaging_params["focus_val"] = np.concatenate(imaging["focus"][:, 0], axis=0)[
+        params["focus_val"] = np.concatenate(imaging["focus"][:, 0], axis=0)[
             :, 0
         ]
         stigx = np.concatenate(imaging["stigx"][:, 0], axis=0)[:, 0]
         stigy = np.concatenate(imaging["stigy"][:, 0], axis=0)[:, 0]
-        imaging_params["stigmations"] = np.stack([stigx, stigy], axis=1)
-        imaging_params["scan_rotations"] = np.concatenate(
+        params["stigmations"] = np.stack([stigx, stigy], axis=1)
+        params["scan_rotations"] = np.concatenate(
             target_mat["target"]["scanrot"][:, 0], axis=0
         )[:, 0]
 
@@ -257,7 +252,7 @@ class SmartEM:
         # coordinates, imaging_params are the parsed outputs
 
         self.acquire_many_grids(
-            coordinates=coordinates, imaging_params=imaging_params, save_dir=save_dir
+            coordinates=coordinates, params=params, save_dir=save_dir
         )
 
     def __str__(self):

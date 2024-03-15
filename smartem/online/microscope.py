@@ -250,6 +250,7 @@ class ThermoFisherVerios(BaseMicroscope):
         self.microscope.imaging.set_active_view(1)
         self.microscope.imaging.set_active_device(self.ImagingDevice.ELECTRON_BEAM)
         self.microscope.beams.electron_beam.horizontal_field_width.value = fov[0]
+        self.microscope.patterning.set_default_beam_type(self.sdb_enums.BeamType.ELECTRON)
 
         bit_depth = 16
         if "rescan_map" in params.keys():
@@ -262,8 +263,7 @@ class ThermoFisherVerios(BaseMicroscope):
             tools.write_im(self.params["tempfile"], rescan_map)
             bpd = self.BitmapPatternDefinition.load(self.params["tempfile"])
             pattern = self.microscope.patterning.create_bitmap(
-                0, 0, fov[0], fov[1], params["dwell_time"], bpd
-            )
+                0, 0, fov[0], fov[1], params["dwell_time"], bpd)
             pattern.dwell_time = params["dwell_time"]
             pattern.pass_count = 1
             pattern.scan_type = self.sdb_enums.PatternScanType.RASTER
