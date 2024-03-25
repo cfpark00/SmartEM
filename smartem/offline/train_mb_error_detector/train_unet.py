@@ -29,8 +29,8 @@ import tqdm
 import pickle
 device="cuda" if torch.cuda.is_available() else "cpu"
 
-from src.NNtools import Dataset
-from src.NNtools import UNet2
+from NNtools import Dataset
+from NNtools import UNet
 
 train_dataset_h5=args.train_dataset_h5
 model_folder=args.model_folder
@@ -69,7 +69,7 @@ def worker_init_fn(worker_id):
 
 train_loader=torch.utils.data.DataLoader(train_dataset,batch_size=batch_size,drop_last=True,num_workers=4,worker_init_fn=worker_init_fn)
 
-net=UNet2.UNet(n_channels=1,n_classes=2,N=args.arch_N,width=args.arch_width,skip=args.arch_skip,skipcat=args.arch_skipcat,catorig=args.arch_catorig,outker=args.arch_outker)
+net=UNet.UNet(n_channels=1,n_classes=2,N=args.arch_N,width=args.arch_width,skip=args.arch_skip,skipcat=args.arch_skipcat,catorig=args.arch_catorig,outker=args.arch_outker)
 net=net.to(device=device,dtype=torch.float32)
 if pretrain_path!="":
     net.load_state_dict(torch.load(pretrain_path))
