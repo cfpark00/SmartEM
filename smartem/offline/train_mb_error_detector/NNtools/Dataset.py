@@ -88,6 +88,16 @@ class DatasetNerveRing(torch.utils.data.Dataset):
     
 class PatchAugmentDataset(torch.utils.data.Dataset):
     def __init__(self,file_path,n_samples,p_from_dwt_biased,p_from_dwt_unbiased,do_pad=True):
+        """Construct PatchAugmentDataset object.
+
+        Args:
+            file_path (str): Path to HDF5 file with attributes:
+                    {'W': <width of images (int)>, 'H': <height of images (int)>,
+                    'dwts': <dwell times (list: int)>, 'regs': <region names (list: str)>}
+                and datasets:
+                    '<reg>/<dwt>/im', '<reg>/<dwt>/mask'
+            todo
+        """
         super().__init__()
         self.h5=h5py.File(file_path,"r")
         self.n_samples=n_samples
