@@ -114,12 +114,12 @@ class GetRescanMapMembraneErrors(GetRescanMap):
         self.device = torch.device(self.params["device"])
 
         self.em2mb_net = UNet.UNet(1, 2)
-        self.em2mb_net.load_state_dict(torch.load(self.params["em2mb_net"]))
+        self.em2mb_net.load_state_dict(torch.load(self.params["em2mb_net"]), strict=False)
         self.em2mb_net.eval()
         self.em2mb_net.to(self.device)
 
         self.error_net = UNet.UNet(1, 2)
-        self.error_net.load_state_dict(torch.load(self.params["error_net"]))
+        self.error_net.load_state_dict(torch.load(self.params["error_net"]), strict=False)
         self.error_net.eval()
         self.error_net.to(self.device)
 
