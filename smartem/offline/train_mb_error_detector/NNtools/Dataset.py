@@ -94,7 +94,7 @@ class PatchAugmentDataset(torch.utils.data.Dataset):
             file_path (str): Path to HDF5 file with attributes:
                     {'W': <width of images (int)>, 'H': <height of images (int)>,
                     'dwts': <dwell times (list: int)>, 'regs': <region names (list: str)>}
-                and datasets:
+                and datasets of shape HxW and dtype uint8 where 0 indicates background and 255 indicates foreground for the mask:
                     '<reg>/<dwt>/im', '<reg>/<dwt>/mask'
             todo
         """
