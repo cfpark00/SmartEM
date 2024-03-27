@@ -21,7 +21,7 @@ class Segmenter:
     def __init__(self, model_path = None, segmenter_function = None):
         self.model_path = model_path
         self.model = None
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
         self.segmenter_function = segmenter_function
         self.labels = None
 
