@@ -78,6 +78,9 @@ def visualize(**images):
         assert key in title_to_image.keys()
 
     f, axs = plt.subplots(nrows = len(title_to_image.keys()))
+    if type(axs) is not list:
+        axs = [axs]
+
     for idx, (title, image) in enumerate(title_to_image.items()):
         axs[idx].imshow(image, cmap="gray")
         axs[idx].title.set_text(title)
