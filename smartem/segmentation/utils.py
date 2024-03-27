@@ -11,6 +11,7 @@ import glob
 
 import numpy as np
 from tqdm import tqdm
+import random
 
 import matplotlib.pyplot as plt
 
@@ -115,6 +116,6 @@ def shuffle_labels(im):
 
     for lbl in np.unique(im):
         if lbl > 0:
-            im_shuffled[im == lbl] = lbl % 255 + 1
+            im_shuffled[im == lbl] = random.randint(1,255)
             
     return im_shuffled
