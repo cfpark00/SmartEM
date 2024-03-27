@@ -83,7 +83,7 @@ def visualize(**images):
     for key in title_to_mb.keys():
         assert key in title_to_image.keys()
 
-    f, axs = plt.subplots(nrows = 2, ncols = len(title_to_image.keys()))
+    f, axs = plt.subplots(nrows = 2, ncols = np.amax([2, len(title_to_image.keys())]))
 
     for idx, (title, image) in enumerate(title_to_image.items()):
         axs[0, idx].imshow(image, cmap="gray")
