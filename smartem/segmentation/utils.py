@@ -12,6 +12,8 @@ import glob
 import numpy as np
 from tqdm import tqdm
 
+import matplotlib.pyplot as plt
+
 def watershed(img,starting_point = 0):
 
     mb32 = img.astype(np.int32)
@@ -60,3 +62,27 @@ def watershed(img,starting_point = 0):
 #                 vi -= R[i,j]*(np.log(R[i,j]/p[i])+np.log(R[i,j]/q[j]))
 
 #     return vi
+
+def visualize(**images):
+    title_to_image = {}
+    title_to_label = {}
+
+    for name, image in images.items():
+        title = "_".join(name.split('_')[:-1]).replace("_", " ").title()
+        if "image" in name:
+            title_to_image[title] = np.squeeze(image)
+        elif "label" in name:
+            title_to_label[title] = np.squeeze(image)
+
+    for key in title_to_label.keys():
+        assert key in title_to_image.keys()
+
+    f, axs = plt.subplots(nrows = len(title_to_image.keys()))
+    for idx, (title, image) in enumerate(title_to_image.items()):
+        axs[idx].imshow(image, cmap="gray")
+        axs[idx].title.set_text(title)
+        if title in title_to_label.keys():
+            axs[idx].imshow(title_to_label[title], cmap="jey")
+
+
+
