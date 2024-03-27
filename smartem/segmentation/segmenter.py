@@ -67,8 +67,9 @@ class Segmenter:
 
         with torch.no_grad():
             output = self.model(img).cpu()
+            # binarize the output based on the threshold of 0.5
             if (output >= 0).all() and (output <= 1).all():
-                mask = output
+                mask = output > 0.5
             else:
                 mask = torch.sigmoid(output) > 0.5
 
