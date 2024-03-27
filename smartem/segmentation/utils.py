@@ -110,5 +110,11 @@ def visualize(**images):
     f.set_figwidth(5*len(title_to_image.keys()))
     f.tight_layout()
 
+def shuffle_labels(im):
+    im_shuffled = np.zeros(im.shape)
 
-
+    for lbl in np.unique(im):
+        if lbl > 0:
+            im_shuffled[im == lbl] = lbl % 255 + 1
+            
+    return im_shuffled
