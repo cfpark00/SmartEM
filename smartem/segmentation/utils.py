@@ -84,7 +84,7 @@ def visualize(**images):
         assert key in title_to_image.keys()
 
     f, axs = plt.subplots(nrows = 2, ncols = len(title_to_image.keys()))
-    if len(axs.shape) = 1:
+    if len(axs.shape) == 1:
         axs = np.expand_dims(axs, axis = 1)
         
     for idx, (title, image) in enumerate(title_to_image.items()):
