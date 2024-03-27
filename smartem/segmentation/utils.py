@@ -85,7 +85,7 @@ def visualize(**images):
         axs[idx].imshow(image, cmap="gray")
         axs[idx].title.set_text(title)
         if title in title_to_label.keys():
-            axs[idx].imshow(title_to_label[title], cmap="jet", alpha=0.2)
+            axs[idx].imshow(title_to_label[title], cmap="jet", alpha=0.5)
 
 
 
