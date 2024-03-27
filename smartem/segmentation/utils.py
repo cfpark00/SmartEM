@@ -64,6 +64,7 @@ def watershed(img,starting_point = 0):
 #     return vi
 
 def visualize(**images):
+    # Inputs should be named <title>_<label or image> so this function can match labels to images
     title_to_image = {}
     title_to_label = {}
 
