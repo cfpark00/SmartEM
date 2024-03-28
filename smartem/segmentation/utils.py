@@ -11,7 +11,6 @@ import glob
 
 import numpy as np
 from tqdm import tqdm
-import random
 
 import matplotlib.pyplot as plt
 
@@ -65,10 +64,9 @@ def watershed(img,starting_point = 0):
 #     return vi
 
 def visualize(**images):
-    # Inputs should be named <title>_<'label' or 'image' or 'pred'> so this function can match labels to images
+    # Inputs should be named <title>_<label or image> so this function can match labels to images
     title_to_image = {}
     title_to_label = {}
-    title_to_mb = {}
 
     for name, image in images.items():
         title = "_".join(name.split('_')[:-1]).replace("_", " ").title()
@@ -76,46 +74,19 @@ def visualize(**images):
             title_to_image[title] = np.squeeze(image)
         elif "label" in name:
             title_to_label[title] = np.squeeze(image)
-        elif "pred" in name:
-            title_to_mb[title] = np.squeeze(image)
 
     for key in title_to_label.keys():
         assert key in title_to_image.keys()
-    for key in title_to_mb.keys():
-        assert key in title_to_image.keys()
 
-    f, axs = plt.subplots(nrows = 2, ncols = len(title_to_image.keys()))
-    if len(axs.shape) == 1:
-        axs = np.expand_dims(axs, axis = 1)
-        
+    f, axs = plt.subplots(nrows = len(title_to_image.keys()))
+    if type(axs) is not list:
+        axs = [axs]
+
     for idx, (title, image) in enumerate(title_to_image.items()):
-        axs[0, idx].imshow(image, cmap="gray")
-        axs[0, idx].title.set_text(title)
-
-
+        axs[idx].imshow(image, cmap="gray")
+        axs[idx].title.set_text(title)
         if title in title_to_label.keys():
-            axs[0, idx].imshow(title_to_label[title], cmap="jet", alpha=0.5)
-        if title in title_to_mb.keys():
-            axs[1, idx].imshow(title_to_mb[title], cmap="gray")
+            axs[idx].imshow(title_to_label[title], cmap="jet", alpha=0.5)
 
-        xax = axs[0, idx].axes.get_xaxis()
-        xax = xax.set_visible(False)
-        yax = axs[0, idx].axes.get_yaxis()
-        yax = yax.set_visible(False)
-        xax = axs[1, idx].axes.get_xaxis()
-        xax = xax.set_visible(False)
-        yax = axs[1, idx].axes.get_yaxis()
-        yax = yax.set_visible(False)
 
-    f.set_figheight(10)
-    f.set_figwidth(5*len(title_to_image.keys()))
-    f.tight_layout()
 
-def shuffle_labels(im):
-    im_shuffled = np.zeros(im.shape)
-
-    for lbl in np.unique(im):
-        if lbl > 0:
-            im_shuffled[im == lbl] = random.randint(1,255)
-            
-    return im_shuffled

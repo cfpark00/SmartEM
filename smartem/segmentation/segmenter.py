@@ -81,7 +81,6 @@ class Segmenter:
         if not get_probs:
             return mask
         else:
-            output = output.squeeze().numpy()[1]
             return mask, output
 
     def get_labels(self, img):
