@@ -99,10 +99,6 @@ class Segmenter:
         self.labels = labels
         return labels
     
-    def calculate_voi(self,gt_labels):
-        if self.labels is None:
-            raise ValueError("No labels to compare")
-        return voi(gt_labels, self.labels)
 
 
         
