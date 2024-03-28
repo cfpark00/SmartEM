@@ -15,10 +15,9 @@ import importlib
 from utils import watershed
 
 
-
 class Segmenter:
 
-    def __init__(self, model_path = None, segmenter_function = None, device = "auto"):
+    def __init__(self, model_path=None, segmenter_function=None, device="auto"):
         self.model_path = model_path
         self.model = None
         if device == "auto":
@@ -35,21 +34,21 @@ class Segmenter:
         self.model.load_state_dict(weights)
         self.model.eval()
 
-    def preprocess(self,img):
+    def preprocess(self, img):
         if img.ndim == 2:
             if img.shape[0] % 32 != 0:
-                img = img[:-(img.shape[0] % 32), :]
+                img = img[: -(img.shape[0] % 32), :]
             if img.shape[1] % 32 != 0:
-                img = img[:, :-(img.shape[1] % 32)]
+                img = img[:, : -(img.shape[1] % 32)]
             img = img[np.newaxis, ...]
         elif img.ndim == 3:
             min_axis = np.argmin(img.shape)
             if min_axis == len(img.shape) - 1:
                 img = img.transpose((2, 0, 1))
             if img.shape[1] % 32 != 0:
-                img = img[:, :-(img.shape[1] % 32), :]
+                img = img[:, : -(img.shape[1] % 32), :]
             if img.shape[2] % 32 != 0:
-                img = img[:, :, :-(img.shape[2] % 32)]
+                img = img[:, :, : -(img.shape[2] % 32)]
         else:
             raise ValueError("Image shape not understood")
 
@@ -58,7 +57,7 @@ class Segmenter:
 
         return img
 
-    def get_membranes(self, img, get_probs = False):
+    def get_membranes(self, img, get_probs=False):
         # print(img.shape)
         img = self.preprocess(img)
         img = torch.as_tensor(img.copy()).float().contiguous()
@@ -74,7 +73,6 @@ class Segmenter:
                 output = torch.sigmoid(output)
                 mask = output > 0.5
 
-
         mask = mask.squeeze().numpy()[1]
         mask = mask.astype(np.uint8) * 255
 
@@ -86,19 +84,14 @@ class Segmenter:
 
     def get_labels(self, img):
         membranes = self.get_membranes(img)
-        # print the type of 
+        # print the type of
         # if self.segmenter_function.__code__.co_code == watershed.__code__.co_code:
         if "watershed" in self.segmenter_function.__name__.lower():
             print("Using watershed function")
         else:
             print("Inverting the image as not using custom watershed function")
             membranes = 255 - membranes
-            
-        
+
         labels = self.segmenter_function(membranes)
         self.labels = labels
         return labels
-    
-
-
-        
