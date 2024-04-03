@@ -30,9 +30,10 @@ class Segmenter:
 
     def set_model(self, model_class):
         # self.model_path = model_path
-        self.model = model_class.to(self.device)
-        weights = torch.load(self.model_path, map_location=self.device)
-        self.model.load_state_dict(weights)
+        # self.model = model_class.to(self.device)
+        self.model = torch.load(self.model_path, map_location=self.device)
+        # weights = torch.load(self.model_path, map_location=self.device)
+        # print(self.model.load_state_dict(weights))
         self.model.eval()
 
     def preprocess(self,img):
@@ -60,24 +61,30 @@ class Segmenter:
 
     def get_membranes(self, img, get_probs = False):
         # print(img.shape)
-        img = self.preprocess(img)
+        # img = self.preprocess(img)
+        # print("After preprocessing", img.shape)
+        img = img.transpose(2, 0, 1)
+        img = img[:, :-(img.shape[1] % 32), :]
         img = torch.as_tensor(img.copy()).float().contiguous()
         img = img.unsqueeze(0)
         img = img.to(device=self.device, dtype=torch.float32)
-
+        
         with torch.no_grad():
+            # print("Before passing", img.shape)
             output = self.model(img).cpu()
             # binarize the output based on the threshold of 0.5
             if (output >= 0).all() and (output <= 1).all():
                 mask = output > 0.5
             else:
+                
                 output = torch.sigmoid(output)
                 mask = output > 0.5
 
 
         mask = mask.squeeze().numpy()[1]
         mask = mask.astype(np.uint8) * 255
-
+        
+        # print("Done outputs")
         if not get_probs:
             return mask
         else:
@@ -91,7 +98,7 @@ class Segmenter:
         if "watershed" in self.segmenter_function.__name__.lower():
             print("Using watershed function")
         else:
-            print("Inverting the image as not using custom watershed function")
+            # print("Inverting the image as not using custom watershed function")
             membranes = 255 - membranes
             
         
