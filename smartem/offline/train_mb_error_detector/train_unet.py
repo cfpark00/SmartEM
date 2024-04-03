@@ -12,7 +12,6 @@ parser.add_argument('-lr', type=float,default=0.01, help='learning rate')
 parser.add_argument('-pretrain_path',type=str,default="", help='pretrained network path')
 parser.add_argument('-no_pad',action="store_true",help='No sub patching')
 parser.add_argument('-dwt_sel',type=str,default="biased_fast", help='dwt selection for training data')
-parser.add_argument('-err_data',type=bool,default=False, help="whether the the task is to predict rescan locations")
 ##architecture arguments
 parser.add_argument('-arch_N',type=int,default=2,help='architecture N for NxCBR')
 parser.add_argument('-arch_width',type=int,default=32, help='channel width')
@@ -44,7 +43,6 @@ lr=args.lr
 pretrain_path=args.pretrain_path
 no_pad=args.no_pad
 dwt_sel=args.dwt_sel
-err_data=args.err_data
 
 if dwt_sel=="biased_fast":
     p_from_dwt_biased=lambda x: 1/x
@@ -60,16 +58,10 @@ else:
     assert False, "dwtsel not recognized"
 p_from_dwt_unbiased=lambda x: 1
 
-if False:
-    train_dataset=Dataset.PatchAugmentDatasetRealError(train_dataset_h5,n_steps*batch_size,p_from_dwt_biased,p_from_dwt_unbiased,do_pad=not no_pad)
-    if val_dataset_h5=="":
-        val_dataset_h5=train_dataset_h5
-    val_dataset=Dataset.PatchAugmentDatasetRealError(val_dataset_h5,n_val*batch_size,p_from_dwt_biased,p_from_dwt_unbiased,do_pad=not no_pad)
-else:
-    train_dataset=Dataset.PatchAugmentDataset(train_dataset_h5,n_steps*batch_size,p_from_dwt_biased,p_from_dwt_unbiased,do_pad=not no_pad)
-    if val_dataset_h5=="":
-        val_dataset_h5=train_dataset_h5
-    val_dataset=Dataset.PatchAugmentDataset(val_dataset_h5,n_val*batch_size,p_from_dwt_biased,p_from_dwt_unbiased,do_pad=not no_pad)
+train_dataset=Dataset.PatchAugmentDataset(train_dataset_h5,n_steps*batch_size,p_from_dwt_biased,p_from_dwt_unbiased,do_pad=not no_pad)
+if val_dataset_h5=="":
+    val_dataset_h5=train_dataset_h5
+val_dataset=Dataset.PatchAugmentDataset(val_dataset_h5,n_val*batch_size,p_from_dwt_biased,p_from_dwt_unbiased,do_pad=not no_pad)
 
 def worker_init_fn(worker_id):
     np.random.seed()
