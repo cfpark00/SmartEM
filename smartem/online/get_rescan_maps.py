@@ -9,8 +9,8 @@ import warnings
 import cv2
 
 from smartem import tools
-from .models import UNet
-
+# from .models import UNet
+from smartem.offline.train_mb_error_detector.NNtools import UNet
 
 class GetRescanMap(metaclass=abc.ABCMeta):
     def __init__(self):

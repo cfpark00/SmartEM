@@ -12,7 +12,7 @@ import logging
 import dis
 
 import importlib
-from utils import watershed
+from smartem.segmentation.utils import watershed
 
 
 class Segmenter:
