@@ -31,7 +31,7 @@ import pickle
 device="cuda" if torch.cuda.is_available() else "cpu"
 
 from NNtools import Dataset
-from NNtools import UNet
+from FM_work.SmartEM.smartem.segmentation import UNet
 
 train_dataset_h5=args.train_dataset_h5
 model_folder=args.model_folder

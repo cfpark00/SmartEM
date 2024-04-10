@@ -7,7 +7,7 @@ parser.add_argument('out_dataset_h5', help='path of dataset to generate')
 parser.add_argument('-dwt',type=int,default=50, help='dwell time images to be used')
 args=parser.parse_args()
 
-from NNtools import UNet
+from FM_work.SmartEM.smartem.segmentation import UNet
 from tools import get_error_map, get_error_GT
 from smartem.segmentation import segmenter
 import torch

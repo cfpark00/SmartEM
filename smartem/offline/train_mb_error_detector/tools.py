@@ -386,7 +386,7 @@ class EM2MBNet():
        }
     def __init__(self,params={}):
         sys.path.append(os.path.split(__file__)[0])
-        from NNtools import UNet
+        from FM_work.SmartEM.smartem.segmentation import UNet
         from NNtools import UNet2
         import torch
         self.device="cuda" if torch.cuda.is_available() else "cpu"
@@ -429,7 +429,7 @@ class SmartEM():
        }
     def __init__(self,params={}):
         sys.path.append(os.path.split(__file__)[0])
-        from NNtools import UNet
+        from FM_work.SmartEM.smartem.segmentation import UNet
         from NNtools import UNet2
         import torch
         self.device="cuda" if torch.cuda.is_available() else "cpu"

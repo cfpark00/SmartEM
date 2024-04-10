@@ -12,7 +12,7 @@ import logging
 import dis
 
 import importlib
-from smartem.segmentation.utils import watershed
+from utils import watershed
 
 
 class Segmenter:
@@ -89,7 +89,7 @@ class Segmenter:
         if "watershed" in self.segmenter_function.__name__.lower():
             print("Using watershed function")
         else:
-            print("Inverting the image as not using custom watershed function")
+            # print("Inverting the image as not using custom watershed function")
             membranes = 255 - membranes
 
         labels = self.segmenter_function(membranes)
