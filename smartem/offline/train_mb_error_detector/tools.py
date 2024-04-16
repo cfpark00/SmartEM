@@ -282,7 +282,7 @@ def VI(fm_labels,sm_labels):
     mergers=np.stack([vi_merge_sorted,fm_unique[i_mergers]],axis=1)
     return vi,vi_split,vi_merge,splitters,mergers
 
-def get_error_GT(prob_map,prob_map_ref,h1=0.3,h2=0.04,error_thres=1e-5,dilation=0,use_matlab=False,max_size=200000):
+def get_error_GT(prob_map,prob_map_ref,h1=0.3,h2=0.04,error_thres=1e-5,dilation=0,use_matlab=False,max_size=200000, return_components=False):
     assert (not use_matlab) or (("eng" in globals()) and ("matlab" in globals())), "call tools.import_matlab first"
 
     reduceMin1 =int(h1*255)
@@ -375,7 +375,12 @@ def get_error_GT(prob_map,prob_map_ref,h1=0.3,h2=0.04,error_thres=1e-5,dilation=
         labels=np.logical_or(error1,error2)
     else:
         labels=sim.binary_dilation(np.logical_or(error1,error2),np.ones((dilation,dilation)))
-    return labels
+    
+
+    if return_components:
+        return labels,error1, error2
+    else:
+        return labels
 
 class EM2MBNet():
     defaultparams={"em2mb_net":"",

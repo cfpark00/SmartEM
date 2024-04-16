@@ -11,7 +11,7 @@ import glob
 import numpy as np
 from tqdm import tqdm
 import random
-
+import torch
 import matplotlib.pyplot as plt
 
 
@@ -94,3 +94,14 @@ def shuffle_labels(im):
             im_shuffled[im == lbl] = random.randint(1, 255)
 
     return im_shuffled
+
+
+def get_IoU(gt, pred):
+    intersection = np.logical_and(gt, pred)
+    union = np.logical_or(gt, pred)
+    return np.sum(intersection) / np.sum(union)
+
+def get_IoU_torch(gt, pred):
+    intersection = torch.logical_and(gt, pred)
+    union = torch.logical_or(gt, pred)
+    return torch.sum(intersection) / torch.sum(union)
