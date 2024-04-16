@@ -24,11 +24,16 @@ class Segmenter:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         else:
             self.device = device
+
+        if "watershed" in self.segmenter_function.__name__.lower():
+            print("Using watershed function...")
+        else:
+            print("Not using custom watershed function - will invert images before segmenting...")
         self.segmenter_function = segmenter_function
+
         self.labels = None
 
     def set_model(self, model_class):
-        # self.model_path = model_path
         self.model = model_class.to(self.device)
         weights = torch.load(self.model_path, map_location=self.device)
         self.model.load_state_dict(weights)
@@ -58,7 +63,6 @@ class Segmenter:
         return img
 
     def get_membranes(self, img, get_probs=False):
-        # print(img.shape)
         img = self.preprocess(img)
         img = torch.as_tensor(img.copy()).float().contiguous()
         img = img.unsqueeze(0)
@@ -84,12 +88,8 @@ class Segmenter:
 
     def get_labels(self, img):
         membranes = self.get_membranes(img)
-        # print the type of
-        # if self.segmenter_function.__code__.co_code == watershed.__code__.co_code:
-        if "watershed" in self.segmenter_function.__name__.lower():
-            print("Using watershed function")
-        else:
-            print("Inverting the image as not using custom watershed function")
+
+        if "watershed" not in self.segmenter_function.__name__.lower():
             membranes = 255 - membranes
 
         labels = self.segmenter_function(membranes)
