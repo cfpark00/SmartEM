@@ -74,7 +74,7 @@ with h5py.File(in_dataset_h5, 'r') as h5:
         else:
             data_to_save[reg] = (mb_probs, emap)
         out_regs.append(reg)
-        break
+        # break
 # Save data
 with h5py.File(out_dataset_h5, 'a') as h5:
     for reg in data_to_save.keys():
