@@ -39,7 +39,7 @@ with h5py.File(in_dataset_h5, 'r') as h5:
     data_to_save = {}
     out_regs = []
 
-    hdt_im, _ = h5[regs[0]+"/"+str(slowest_dwt)+"/im"], h5[regs[0]+"/"+str(slowest_dwt)+"/mask"]
+    hdt_im = h5[regs[0]+"/"+str(slowest_dwt)+"/im"]
     _, hdt_mb_probs = Iseg.get_membranes(hdt_im, get_probs=True)
     # print(np.unique(hdt_mb_probs))
     # make hdt_mb_probs uint8
@@ -50,9 +50,6 @@ with h5py.File(in_dataset_h5, 'r') as h5:
         # im,mask=h5[reg+"/"+str(base_dwt)+"/im"],h5[reg+"/"+str(base_dwt)+"/mask"]
         im = h5[reg+"/"+str(base_dwt)+"/im"]
         im = im[:]
-        # Make predictions
-        # mask=Iseg.preprocess(mask)
-        # mask = np.squeeze(mask)
         _, mb_probs = Iseg.get_membranes(im, get_probs=True)
         # mask = (mask*255).astype(np.uint8)
         mb_probs = (mb_probs*255).astype(np.uint8)
