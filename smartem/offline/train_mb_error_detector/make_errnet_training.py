@@ -16,6 +16,7 @@ import torch
 import h5py
 from tqdm import tqdm
 import numpy as np
+from skimage import measure
 
 device="cuda" if torch.cuda.is_available() else "cpu"
 in_dataset_h5=args.in_dataset_h5
@@ -28,12 +29,11 @@ EM2err = args.make_EM2Err
 
 # Make segmenter object which will perform prediction
 net = UNet.UNet(n_channels=1,n_classes=2)
-Iseg = segmenter.Segmenter(model_weights, device=device)
+Iseg = segmenter.Segmenter(model_weights, segmenter_function=measure.label, device=device)
 Iseg.set_model(model_class=net)
 
 # Make predictions and compute errors
 with h5py.File(in_dataset_h5, 'r') as h5:
-
 
     regs=h5.attrs["regs"]
     data_to_save = {}
@@ -66,7 +66,6 @@ with h5py.File(in_dataset_h5, 'r') as h5:
 
         # Organize data for saving later
         if EM2err:
-
             data_to_save[reg] = (im, emap)
         else:
             data_to_save[reg] = (mb_probs, emap)

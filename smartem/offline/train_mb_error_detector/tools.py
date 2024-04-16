@@ -375,7 +375,7 @@ def get_error_GT(prob_map,prob_map_ref,h1=0.3,h2=0.04,error_thres=1e-5,dilation=
         labels=np.logical_or(error1,error2)
     else:
         labels=sim.binary_dilation(np.logical_or(error1,error2),np.ones((dilation,dilation)))
-    return labels, error1, error2
+    return labels #, error1, error2
 
 class EM2MBNet():
     defaultparams={"em2mb_net":"",
