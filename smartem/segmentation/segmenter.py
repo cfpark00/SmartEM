@@ -25,7 +25,7 @@ class Segmenter:
         else:
             self.device = device
 
-        if "watershed" in self.segmenter_function.__name__.lower():
+        if "watershed" in segmenter_function.__name__.lower():
             print("Using watershed function...")
         else:
             print("Not using custom watershed function - will invert images before segmenting...")
