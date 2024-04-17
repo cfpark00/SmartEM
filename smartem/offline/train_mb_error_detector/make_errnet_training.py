@@ -76,16 +76,6 @@ with h5py.File(in_dataset_h5, 'r') as h5:
         out_regs.append(reg)
 
         emaps.append(emap)
-        # break
-# Save data
-        
-# save error maps in a separate file
-        
-# save error maps as 
-# with h5py.File(out_dataset_h5.replace(".h5","_errmaps.h5"), 'a') as h5:
-#     for i, reg in enumerate(out_regs):
-#         g = h5.create_group(reg)
-#         g.create_dataset("errmap", data = emaps[i])
 
 with h5py.File(out_dataset_h5, 'a') as h5:
     for reg in data_to_save.keys():
