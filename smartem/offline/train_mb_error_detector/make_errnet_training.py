@@ -32,18 +32,12 @@ Iseg = segmenter.Segmenter(model_weights, device=device)
 Iseg.set_model(model_class=net)
 
 # Make predictions and compute errors
-emaps = []
-idx = 0
 with h5py.File(in_dataset_h5, 'r') as h5:
 
 
     regs=h5.attrs["regs"]
     data_to_save = {}
     out_regs = []
-
-    
-
-    
     for reg in tqdm(regs, desc="generating membrane predictions..."):
         # im,mask=h5[reg+"/"+str(base_dwt)+"/im"],h5[reg+"/"+str(base_dwt)+"/mask"]
 
@@ -74,8 +68,6 @@ with h5py.File(in_dataset_h5, 'r') as h5:
         else:
             data_to_save[reg] = (mb_probs, emap)
         out_regs.append(reg)
-
-        emaps.append(emap)
 
 with h5py.File(out_dataset_h5, 'a') as h5:
     for reg in data_to_save.keys():
