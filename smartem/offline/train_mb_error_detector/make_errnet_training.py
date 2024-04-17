@@ -76,10 +76,6 @@ with h5py.File(in_dataset_h5, 'r') as h5:
         out_regs.append(reg)
 
         emaps.append(emap)
-
-        idx +=1
-        if idx == 5:
-            break
         # break
 # Save data
         
