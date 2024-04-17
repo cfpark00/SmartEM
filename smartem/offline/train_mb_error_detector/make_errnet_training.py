@@ -32,6 +32,8 @@ Iseg = segmenter.Segmenter(model_weights, device=device)
 Iseg.set_model(model_class=net)
 
 # Make predictions and compute errors
+emaps = []
+idx = 0
 with h5py.File(in_dataset_h5, 'r') as h5:
 
 
@@ -39,15 +41,16 @@ with h5py.File(in_dataset_h5, 'r') as h5:
     data_to_save = {}
     out_regs = []
 
-    hdt_im = h5[regs[0]+"/"+str(slowest_dwt)+"/im"]
-    _, hdt_mb_probs = Iseg.get_membranes(hdt_im, get_probs=True)
-    # print(np.unique(hdt_mb_probs))
-    # make hdt_mb_probs uint8
-    hdt_mb_probs = (hdt_mb_probs*255).astype(np.uint8)
+    
 
     
     for reg in tqdm(regs, desc="generating membrane predictions..."):
         # im,mask=h5[reg+"/"+str(base_dwt)+"/im"],h5[reg+"/"+str(base_dwt)+"/mask"]
+
+        hdt_im = h5[reg+"/"+str(slowest_dwt)+"/im"]
+        _, hdt_mb_probs = Iseg.get_membranes(hdt_im, get_probs=True)
+        hdt_mb_probs = (hdt_mb_probs*255).astype(np.uint8)
+        
         im = h5[reg+"/"+str(base_dwt)+"/im"]
         im = im[:]
         _, mb_probs = Iseg.get_membranes(im, get_probs=True)
@@ -71,8 +74,23 @@ with h5py.File(in_dataset_h5, 'r') as h5:
         else:
             data_to_save[reg] = (mb_probs, emap)
         out_regs.append(reg)
+
+        emaps.append(emap)
+
+        idx +=1
+        if idx == 5:
+            break
         # break
 # Save data
+        
+# save error maps in a separate file
+        
+# save error maps as 
+# with h5py.File(out_dataset_h5.replace(".h5","_errmaps.h5"), 'a') as h5:
+#     for i, reg in enumerate(out_regs):
+#         g = h5.create_group(reg)
+#         g.create_dataset("errmap", data = emaps[i])
+
 with h5py.File(out_dataset_h5, 'a') as h5:
     for reg in data_to_save.keys():
         mb_probs, labels = data_to_save[reg]
@@ -87,3 +105,4 @@ with h5py.File(out_dataset_h5, 'a') as h5:
     h5.attrs["regs"] = out_regs
     h5.attrs["H"] = mb_probs.shape[0]
     h5.attrs["W"] = mb_probs.shape[1]
+
