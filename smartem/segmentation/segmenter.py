@@ -70,7 +70,7 @@ class Segmenter:
             if (output >= 0).all() and (output <= 1).all():
                 mask = output > 0.5
             else:
-                output = torch.sigmoid(output)
+                output = torch.softmax(output, dim=1)
                 mask = output > 0.5
 
         mask = mask.squeeze().numpy()[1]
