@@ -44,6 +44,7 @@ def visualize(**images):
     title_to_image = {}
     title_to_label = {}
     title_to_mb = {}
+    title_to_err = {}
 
     for name, image in images.items():
         title = "_".join(name.split("_")[:-1]).replace("_", " ").title()
@@ -53,10 +54,14 @@ def visualize(**images):
             title_to_label[title] = np.squeeze(image)
         elif "pred" in name:
             title_to_mb[title] = np.squeeze(image)
+        elif "error" in name:
+            title_to_err[title] = (np.squeeze(image[0]), np.squeeze(image[1]))
 
     for key in title_to_label.keys():
         assert key in title_to_image.keys()
     for key in title_to_mb.keys():
+        assert key in title_to_image.keys()
+    for key in title_to_err.keys():
         assert key in title_to_image.keys()
 
     f, axs = plt.subplots(nrows=2, ncols=len(title_to_image.keys()))
@@ -71,6 +76,11 @@ def visualize(**images):
             axs[0, idx].imshow(title_to_label[title], cmap="jet", alpha=0.5)
         if title in title_to_mb.keys():
             axs[1, idx].imshow(title_to_mb[title], cmap="gray")
+            axs[1, idx].title.set_text("MB Predictions w/get_error_GT (merge/yellow, split/red)")
+        if title in title_to_err.keys():
+            axs[1, idx].imshow(title_to_err[title][0], cmap="Wistia", alpha=0.5)
+            axs[1, idx].imshow(title_to_err[title][1], cmap="autumn", alpha=0.5)
+        
 
         xax = axs[0, idx].axes.get_xaxis()
         xax = xax.set_visible(False)

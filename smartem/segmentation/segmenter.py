@@ -74,7 +74,7 @@ class Segmenter:
             if (output >= 0).all() and (output <= 1).all():
                 mask = output > 0.5
             else:
-                output = torch.sigmoid(output)
+                output = torch.softmax(output, dim=1)
                 mask = output > 0.5
 
         mask = mask.squeeze().numpy()[1]
@@ -87,11 +87,13 @@ class Segmenter:
             return mask, output
 
     def get_labels(self, img):
-        membranes = self.get_membranes(img)
+        membranes, membrane_probs = self.get_membranes(img, get_probs=True)
 
         if "watershed" not in self.segmenter_function.__name__.lower():
             membranes = 255 - membranes
+            labels = self.segmenter_function(membranes)
+        else:
+            labels = self.segmenter_function(membranes)
 
-        labels = self.segmenter_function(membranes)
         self.labels = labels
         return labels
