@@ -75,7 +75,8 @@ if pretrain_path!="":
     net.load_state_dict(torch.load(pretrain_path))
 
 opt=torch.optim.Adam(net.parameters(),lr=lr)
-lossfunc=torch.nn.CrossEntropyLoss()
+# lossfunc=torch.nn.CrossEntropyLoss()
+lossfunc = torch.nn.BCEWithLogitsLoss()
 
 train_losses=[]
 t_vals=[]
@@ -86,9 +87,11 @@ step=0
 pbar=tqdm.tqdm(total=n_steps,position=0,leave=True)
 for frame,mask in train_loader:
     frame=frame.to(device=device,dtype=torch.float32)
-    mask=mask.to(device=device,dtype=torch.int64)
+    # mask=mask.to(device=device,dtype=torch.int64)
+    mask=mask.to(device=device,dtype=torch.float32)
     pred=net(frame)
-    loss=lossfunc(pred,mask)
+    # loss=lossfunc(pred,mask)
+    loss=lossfunc(pred[:,1,:,:],mask)
     opt.zero_grad()
     loss.backward()
     opt.step()
@@ -104,9 +107,11 @@ for frame,mask in train_loader:
         with torch.no_grad():
             for val_frame,val_mask in val_loader:
                 val_frame=val_frame.to(device=device,dtype=torch.float32)
-                val_mask=val_mask.to(device=device,dtype=torch.int64)
+                # val_mask=val_mask.to(device=device,dtype=torch.int64d)
+                val_mask=val_mask.to(device=device,dtype=torch.float32)
                 pred=net(val_frame)
-                loss=lossfunc(pred,val_mask)
+                # loss = lossfunc(pred,val_mask)
+                loss=lossfunc(pred[:,1,:,:],val_mask)
                 val_loss_avg+=loss.item()
                 c_val+=1
         val_loss_avg=val_loss_avg/c_val

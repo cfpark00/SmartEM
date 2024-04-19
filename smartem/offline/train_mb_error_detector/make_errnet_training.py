@@ -25,6 +25,8 @@ base_dwt=args.base_dwt
 slowest_dwt = args.slowest_dwt
 EM2err = args.make_EM2Err
 
+print(EM2err)
+
 
 # Make segmenter object which will perform prediction
 net = UNet.UNet(n_channels=1,n_classes=2)
@@ -58,6 +60,8 @@ with h5py.File(in_dataset_h5, 'r') as h5:
         emap = get_error_GT(mb_probs, hdt_mb_probs)
         emap = (emap*255).astype(np.uint8)
 
+        im = im[:mb_probs.shape[0], :mb_probs.shape[1]]
+
         # print(f"MB predictions shape: {mb_probs.shape}, {mb_probs.dtype} {np.amin(mb_probs)}-{np.amax(mb_probs)} w/median {np.median(mb_probs)}, sum {np.sum(mb_probs)}")
         # print(f"error labels shape: {emap.shape}, {emap.dtype} {np.amin(emap)}-{np.amax(emap)} w/median {np.median(emap)}, sum {np.sum(emap)}")
 
@@ -66,6 +70,7 @@ with h5py.File(in_dataset_h5, 'r') as h5:
 
             data_to_save[reg] = (im, emap)
         else:
+            # print("Saving mb probs to emap dataset")
             data_to_save[reg] = (mb_probs, emap)
         out_regs.append(reg)
 
