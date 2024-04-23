@@ -1,6 +1,7 @@
 import pytest
 import torch
 from skimage import measure
+import smartem
 from smartem.segmentation.segmenter import Segmenter
 from unittest.mock import MagicMock
 
@@ -28,3 +29,6 @@ def test_model_loading():
     segmenter.set_model(mock_model_class)
     mock_model_class.to.assert_called_with(segmenter.device)
     mock_model_class.load_state_dict.assert_called_once()
+
+def test_test():
+    pass
