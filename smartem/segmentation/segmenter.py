@@ -39,6 +39,10 @@ class Segmenter:
         self.model.load_state_dict(weights)
         self.model.eval()
 
+    def set_model_from_checkpoint(self, model_path):
+        self.model = torch.load(model_path, map_location=self.device)
+        self.model.eval()
+
     def preprocess(self, img):
         if img.ndim == 2:
             if img.shape[0] % 32 != 0:
@@ -85,6 +89,8 @@ class Segmenter:
         else:
             output = output.squeeze().numpy()[1]
             return mask, output
+        
+    
 
     def get_labels(self, img):
         membranes = self.get_membranes(img)
