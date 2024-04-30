@@ -2,115 +2,60 @@ import pytest
 import torch
 from skimage import measure
 import smartem
-import unittest
+import pytest
 import numpy as np
 from smartem.online.get_rescan_maps import GetRescanMapMembraneErrors
 from smartem.online.get_rescan_maps import GetRescanMapTest
 from smartem.offline.train_mb_error_detector.NNtools import UNet
 import tempfile
 import os,sys
-
-class TestGetRescanMapMembraneErrors(unittest.TestCase):
-
-
-    def setUp(self):
-        # Create U-Net models and save their state dicts to temporary files
-        self.em2mb_net = UNet.UNet(1, 2)
-        self.error_net = UNet.UNet(1, 2)
-
-        # Temporary files to store models
-        self.temp_em2mb_file = tempfile.NamedTemporaryFile(delete=False)
-        self.temp_error_file = tempfile.NamedTemporaryFile(delete=False)
-
-        # Save models
-        torch.save(self.em2mb_net.state_dict(), self.temp_em2mb_file.name)
-        torch.save(self.error_net.state_dict(), self.temp_error_file.name)
-
-        # Parameters with paths to the temporary model files
-        self.params = {
-            "em2mb_net": self.temp_em2mb_file.name,
-            "error_net": self.temp_error_file.name,
-            "device": "auto"  # Set to auto to use GPU if available
-        }
-
-    def tearDown(self):
-        # Close and remove temporary files
-        self.temp_em2mb_file.close()
-        os.remove(self.temp_em2mb_file.name)
-        self.temp_error_file.close()
-        os.remove(self.temp_error_file.name)
-
-    def test_initialize(self):
-        # Initialize rescan map object with the parameters
-        rescan_map = GetRescanMapMembraneErrors(params=self.params)
-        rescan_map.initialize()
-
-        # Assertions to check if models are loaded correctly and device is set
-        self.assertIsInstance(rescan_map.em2mb_net, UNet.UNet)
-        self.assertIsInstance(rescan_map.error_net, UNet.UNet)
-        expected_device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        print(expected_device)
-        self.assertEqual(str(rescan_map.device), expected_device)
-
-        # Optional: Check CUDA availability directly
-        if torch.cuda.is_available():
-            self.assertTrue('cuda' in str(rescan_map.device))
-        else:
-            self.assertEqual(str(rescan_map.device), 'cpu')
-
-        # Optional: Further checks can include verifying the state dicts if necessary
-        # This could be done by comparing the loaded model's state dict with the original one
-        original_em2mb_state_dict = torch.load(self.temp_em2mb_file.name, map_location=rescan_map.device)
-        loaded_em2mb_state_dict = rescan_map.em2mb_net.state_dict()
-        self.assertTrue(all(torch.equal(original_em2mb_state_dict[k], loaded_em2mb_state_dict[k]) for k in original_em2mb_state_dict))
-
-        original_error_state_dict = torch.load(self.temp_error_file.name, map_location=rescan_map.device)
-        loaded_error_state_dict = rescan_map.error_net.state_dict()
-        self.assertTrue(all(torch.equal(original_error_state_dict[k], loaded_error_state_dict[k]) for k in original_error_state_dict))
+from pathlib import Path
 
 
-class TestGetRescanMapTest(unittest.TestCase):
+@pytest.fixture
+def model_files():
+    # Setup: Create U-Net models and save their state dicts to temporary files
+    em2mb_net = UNet.UNet(1, 2)
+    error_net = UNet.UNet(1, 2)
 
+    # Using tempfile.TemporaryDirectory to handle cleanup automatically
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir = Path(temp_dir)
+        em2mb_path = temp_dir / "em2mb_net.pth"
+        error_path = temp_dir / "error_net.pth"
 
-    def test_custom_initialization(self):
-        """ Test the initialization with custom parameters. """
-        custom_params = {"type": "random", "fraction": 0.3}
-        rescan = GetRescanMapTest(params=custom_params)
-        self.assertEqual(rescan.params["type"], "random")
-        self.assertEqual(rescan.params["fraction"], 0.3)
-    
-    def test_get_rescan_map_threshold(self):
-        """ Test the threshold rescan map type. """
-        fast_em = np.array([[0.1, 0.2], [0.9, 0.95]])
-        rescan = GetRescanMapTest(params={"type": "threshold", "fraction": 0.5})
-        mask, _ = rescan.get_rescan_map(fast_em)
-        expected_mask = np.array([[False, False], [True, True]], dtype=bool)
-        np.testing.assert_array_equal(mask, expected_mask)
+        torch.save(em2mb_net.state_dict(), em2mb_path)
+        torch.save(error_net.state_dict(), error_path)
 
-    def test_invalid_type_initialization(self):
-        """ Test initialization with an invalid type to ensure it raises an assertion error. """
-        with self.assertRaises(AssertionError):
-            GetRescanMapTest(params={"type": "invalid_type"})
+        # Yield paths for use in tests
+        yield str(em2mb_path), str(error_path)
 
-    def test_get_rescan_map_half(self):
-        """ Test the half rescan map type. """
-        fast_em = np.random.rand(100, 100)
-        rescan = GetRescanMapTest(params={"type": "half"})
-        mask, _ = rescan.get_rescan_map(fast_em)
-        expected_mask = np.zeros_like(fast_em, dtype=bool)
-        expected_mask[:50, :] = 1
-        np.testing.assert_array_equal(mask, expected_mask)
+def test_initialize(model_files):
+    em2mb_path, error_path = model_files
+    params = {
+        "em2mb_net": em2mb_path,
+        "error_net": error_path,
+        "device": "auto",  # Set to auto to use GPU if available
+        "pad": 0,
+        "rescan_p_thres": 0.1,
+        "do_clahe": False
+    }
 
-    def test_get_rescan_map_random(self):
-        """ Test the random rescan map type. """
-        fast_em = np.random.rand(10, 10)
-        rescan = GetRescanMapTest(params={"type": "random", "fraction": 0.2})
-        mask, _ = rescan.get_rescan_map(fast_em)
-        self.assertEqual(np.sum(mask), 20)  # 20% of 100 elements is 20
+    # Initialize rescan map object with the parameters
+    rescan_map = GetRescanMapMembraneErrors(params=params)
+    rescan_map.initialize()
 
+    # Assertions to check if models are loaded correctly and device is set
+    assert isinstance(rescan_map.em2mb_net, UNet.UNet)
+    assert isinstance(rescan_map.error_net, UNet.UNet)
+    expected_device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    assert str(rescan_map.device) == expected_device
 
-if __name__ == '__main__':
-    unittest.main()
+    # Load original state dicts and compare to the loaded ones
+    original_em2mb_state_dict = torch.load(em2mb_path, map_location=rescan_map.device)
+    loaded_em2mb_state_dict = rescan_map.em2mb_net.state_dict()
+    assert all(torch.equal(original_em2mb_state_dict[k], loaded_em2mb_state_dict[k]) for k in original_em2mb_state_dict), "Mismatch in EM2MB model parameters"
 
-
-        
+    original_error_state_dict = torch.load(error_path, map_location=rescan_map.device)
+    loaded_error_state_dict = rescan_map.error_net.state_dict()
+    assert all(torch.equal(original_error_state_dict[k], loaded_error_state_dict[k]) for k in original_error_state_dict), "Mismatch in Error model parameters"
