@@ -10,6 +10,7 @@ from smartem.offline.train_mb_error_detector.NNtools import UNet
 import tempfile
 import os,sys
 from pathlib import Path
+from unittest.mock import patch
 
 
 @pytest.fixture
@@ -59,3 +60,33 @@ def test_initialize(model_files):
     original_error_state_dict = torch.load(error_path, map_location=rescan_map.device)
     loaded_error_state_dict = rescan_map.error_net.state_dict()
     assert all(torch.equal(original_error_state_dict[k], loaded_error_state_dict[k]) for k in original_error_state_dict), "Mismatch in Error model parameters"
+
+def test_rescan_ratio(model_files):
+    # rescan_map = setup_rescan_map
+    em2mb_path, error_path = model_files
+    params = {
+        "em2mb_net": em2mb_path,
+        "error_net": error_path,
+        "device": "auto",  # Set to auto to use GPU if available
+        "pad": 0,
+        "rescan_p_thres": 0.1,
+        "do_clahe": False
+    }
+
+    # Initialize rescan map object with the parameters
+    rescan_map = GetRescanMapMembraneErrors(params=params)
+    rescan_map.initialize()
+
+    rescan_map.params['rescan_ratio'] = 0.2
+    rescan_map.params['rescan_p_thres'] = None
+    
+    # test_image = np.linspace(0, 1, 100).reshape(10, 10)
+    # make a random test image of shape 1024 by 1024
+    test_image = np.random.rand(1024, 1024)
+    # put test_image in uint8
+    test_image = (test_image * 255).astype(np.uint8)
+    map_output,extras = rescan_map.get_rescan_map(test_image)
+    with pytest.raises(AssertionError):
+        assert (map_output.sum() / 100) == pytest.approx(0.2), "Should select roughly 20% of the area"
+    # assert (map_output.sum() / 100) == pytest.approx(0.2), "Should select roughly 20% of the area"
+    # print(np.unique(map_output, return_counts=True))
