@@ -7,29 +7,26 @@ import numpy as np
 from smartem.online.get_rescan_maps import GetRescanMapMembraneErrors
 from smartem.online.get_rescan_maps import GetRescanMapTest
 from smartem.offline.train_mb_error_detector.NNtools import UNet
-import tempfile
 import os,sys
 from pathlib import Path
-from unittest.mock import patch
+
 
 
 @pytest.fixture
-def model_files():
+def model_files(tmp_path):
     # Setup: Create U-Net models and save their state dicts to temporary files
     em2mb_net = UNet.UNet(1, 2)
     error_net = UNet.UNet(1, 2)
 
     # Using tempfile.TemporaryDirectory to handle cleanup automatically
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_dir = Path(temp_dir)
-        em2mb_path = temp_dir / "em2mb_net.pth"
-        error_path = temp_dir / "error_net.pth"
+    em2mb_path = tmp_path / "em2mb_net.pth"
+    error_path = tmp_path / "error_net.pth"
 
-        torch.save(em2mb_net.state_dict(), em2mb_path)
-        torch.save(error_net.state_dict(), error_path)
+    torch.save(em2mb_net.state_dict(), em2mb_path)
+    torch.save(error_net.state_dict(), error_path)
 
-        # Yield paths for use in tests
-        yield str(em2mb_path), str(error_path)
+    # Yield paths for use in tests
+    yield str(em2mb_path), str(error_path)
 
 def test_initialize(model_files):
     em2mb_path, error_path = model_files
