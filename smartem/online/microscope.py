@@ -76,9 +76,26 @@ class FakeRandomMicroscope(BaseMicroscope):
 
 
 class FakeDataMicroscope(BaseMicroscope):
+    """This class acts as a synthetic microscope, returning data from saved files.
+
+    Attributes:
+        params (dict): paths of images at various dwell times
+
+    Methods:
+        initialize: placeholder
+        close: placeholder
+        prepare_acquisition: placeholder
+        get_image: read file of given dwell time
+    """
+
     default_params = {"images_ns": {}}
 
     def __init__(self, params=None):
+        """Initialize microscope with paths.
+
+        Args:
+            params (dict, optional): paths of images at various dwell times. Defaults to None.
+        """
         super().__init__()
         self.params = self.default_params
         if params is not None:
@@ -92,6 +109,18 @@ class FakeDataMicroscope(BaseMicroscope):
         pass
 
     def get_image(self, params):
+        """Read file and return data for image of given dwell time.
+
+        Args:
+            params (dict): desired dwell time
+
+        Raises:
+            ValueError: if file path for given dwell time is not available
+            ValueError: if file path for given dwell time does not exist
+
+        Returns:
+            np.ndarray: image
+        """
         dwt = params["dwell_time"]
         dwt_ns = int(dwt * 1e9)
         if dwt_ns not in self.params["images_ns"].keys():
@@ -250,7 +279,9 @@ class ThermoFisherVerios(BaseMicroscope):
         self.microscope.imaging.set_active_view(1)
         self.microscope.imaging.set_active_device(self.ImagingDevice.ELECTRON_BEAM)
         self.microscope.beams.electron_beam.horizontal_field_width.value = fov[0]
-        self.microscope.patterning.set_default_beam_type(self.sdb_enums.BeamType.ELECTRON)
+        self.microscope.patterning.set_default_beam_type(
+            self.sdb_enums.BeamType.ELECTRON
+        )
 
         bit_depth = 16
         if "rescan_map" in params.keys():
@@ -263,7 +294,8 @@ class ThermoFisherVerios(BaseMicroscope):
             tools.write_im(self.params["tempfile"], rescan_map)
             bpd = self.BitmapPatternDefinition.load(self.params["tempfile"])
             pattern = self.microscope.patterning.create_bitmap(
-                0, 0, fov[0], fov[1], params["dwell_time"], bpd)
+                0, 0, fov[0], fov[1], params["dwell_time"], bpd
+            )
             pattern.dwell_time = params["dwell_time"]
             pattern.pass_count = 1
             pattern.scan_type = self.sdb_enums.PatternScanType.RASTER
