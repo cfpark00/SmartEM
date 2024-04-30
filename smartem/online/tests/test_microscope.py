@@ -26,11 +26,9 @@ def test_FakeDataMicroscope_init(tmp_path):
         dt_to_im[dt] = im
 
     # test get_image
-    microscope = FakeDataMicroscope(
-        {"images_ns": dt_to_path}
-    )
+    microscope = FakeDataMicroscope({"images_ns": dt_to_path})
     for dt in dt_to_path.keys():
-        im = microscope.get_image({"dwell_time": dt*1e-9})
+        im = microscope.get_image({"dwell_time": dt * 1e-9})
         assert (im == dt_to_im[dt]).all()
     with pytest.raises(ValueError):  # dwell time does not exist
         microscope.get_image({"dwell_time": 1000e-9})
