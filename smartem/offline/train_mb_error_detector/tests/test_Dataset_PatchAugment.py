@@ -6,6 +6,7 @@ import os
 import torch
 from smartem.offline.train_mb_error_detector.NNtools.Dataset import PatchAugmentDataset
 
+
 @pytest.fixture
 def create_hdf5(tmp_path):
     # Setup a temporary HDF5 file
@@ -14,14 +15,18 @@ def create_hdf5(tmp_path):
     print("File path:", temp_file)  # Directly printing the file path
     with h5py.File(temp_file, "w") as f:
         size = 1024
-        f.attrs['W'] = size
-        f.attrs['H'] = size
-        f.attrs['dwts'] = [50, 800]
-        f.attrs['regs'] = ['region1', 'region2']
-        f.create_dataset('region1/50/im', data=np.random.rand(size, size) * 255)
-        f.create_dataset('region1/50/mask', data=np.random.randint(0, 1, (size, size)) * 255)
-        f.create_dataset('region2/800/im', data=np.random.rand(size, size) * 255)
-        f.create_dataset('region2/800/mask', data=np.random.randint(0, 1, (size, size)) * 255)
+        f.attrs["W"] = size
+        f.attrs["H"] = size
+        f.attrs["dwts"] = [50, 800]
+        f.attrs["regs"] = ["region1", "region2"]
+        f.create_dataset("region1/50/im", data=np.random.rand(size, size) * 255)
+        f.create_dataset(
+            "region1/50/mask", data=np.random.randint(0, 1, (size, size)) * 255
+        )
+        f.create_dataset("region2/800/im", data=np.random.rand(size, size) * 255)
+        f.create_dataset(
+            "region2/800/mask", data=np.random.randint(0, 1, (size, size)) * 255
+        )
         print("File contents", print_hdf5_contents(temp_file))
         print()
     yield temp_file
@@ -42,6 +47,7 @@ def print_hdf5_contents(file_path):
 
         f.visititems(print_group)
 
+
 def test_print_hdf5_contents(create_hdf5):
     file_path = create_hdf5
     print_hdf5_contents(file_path)
@@ -51,7 +57,7 @@ def test_print_hdf5_contents(create_hdf5):
 #     file_path = create_hdf5
 #     dataset = PatchAugmentDataset(file_path, 10, lambda x: x, lambda x: x)
 #     image, mask = dataset[0]
-    
+
 #     assert isinstance(image, torch.Tensor) and image.dtype == torch.float32
 #     assert isinstance(mask, torch.Tensor) and mask.dtype == torch.int64
 #     assert image.shape == (1, dataset.out, dataset.out)
@@ -61,7 +67,7 @@ def test_print_hdf5_contents(create_hdf5):
 #     file_path = create_hdf5
 #     dataset = PatchAugmentDataset(file_path, 10, lambda x: x, lambda x: x)
 #     pad_shape = dataset.random_shape_gen(dataset.grid, 0.5)
-    
+
 #     assert isinstance(pad_shape, np.ndarray)
 #     assert pad_shape.shape == dataset.grid.shape[1:]  # Should match the shape of the grid sliced
 #     assert pad_shape.dtype == bool
@@ -70,7 +76,7 @@ def test_print_hdf5_contents(create_hdf5):
 #     file_path = create_hdf5
 #     dataset = PatchAugmentDataset(file_path, 10, lambda x: x, lambda x: x)
 #     image, mask, reg, dwt = dataset.get_random_image_mask(dataset.p_dwts_biased)
-    
+
 #     assert isinstance(image, np.ndarray) and image.dtype == float
 #     assert isinstance(mask, np.ndarray) and mask.dtype == float
 #     assert reg in dataset.regs
@@ -81,7 +87,7 @@ def test_print_hdf5_contents(create_hdf5):
 #     dataset = PatchAugmentDataset(file_path, 10, lambda x: x, lambda x: x)
 #     reg = 'region1'
 #     image, mask, reg_out, dwt = dataset.get_random_image_mask_from_reg(reg, dataset.p_dwts_biased)
-    
+
 #     assert isinstance(image, np.ndarray) and image.dtype == float
 #     assert isinstance(mask, np.ndarray) and mask.dtype == float
 #     assert reg_out == reg
