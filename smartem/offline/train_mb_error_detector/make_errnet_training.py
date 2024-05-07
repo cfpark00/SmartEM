@@ -52,8 +52,6 @@ with h5py.File(in_dataset_h5, "r") as h5:
     data_to_save = {}
     out_regs = []
     for reg in tqdm(regs, desc="generating membrane predictions..."):
-        # im,mask=h5[reg+"/"+str(base_dwt)+"/im"],h5[reg+"/"+str(base_dwt)+"/mask"]
-
         hdt_im = h5[reg + "/" + str(slowest_dwt) + "/im"]
         _, hdt_mb_probs = Iseg.get_membranes(hdt_im, get_probs=True)
         hdt_mb_probs = (hdt_mb_probs * 255).astype(np.uint8)
@@ -61,18 +59,12 @@ with h5py.File(in_dataset_h5, "r") as h5:
         im = h5[reg + "/" + str(base_dwt) + "/im"]
         im = im[:]
         _, mb_probs = Iseg.get_membranes(im, get_probs=True)
-        # mask = (mask*255).astype(np.uint8)
         mb_probs = (mb_probs * 255).astype(np.uint8)
-        # print(f"predicted probs shape: {mb_probs.shape}, {mb_probs.dtype} {np.amin(mb_probs)}-{np.amax(mb_probs)} w/median {np.median(mb_probs)}, sum {np.sum(mask)}")
-        # print(f"mask shape: {mask.shape}, {mask.dtype} {np.amin(mask)}-{np.amax(mask)} w/median {np.median(mask)}, sum {np.sum(mask)}")
 
         # Generate error mask
 
         emap = get_error_GT(mb_probs, hdt_mb_probs)
         emap = (emap * 255).astype(np.uint8)
-
-        # print(f"MB predictions shape: {mb_probs.shape}, {mb_probs.dtype} {np.amin(mb_probs)}-{np.amax(mb_probs)} w/median {np.median(mb_probs)}, sum {np.sum(mb_probs)}")
-        # print(f"error labels shape: {emap.shape}, {emap.dtype} {np.amin(emap)}-{np.amax(emap)} w/median {np.median(emap)}, sum {np.sum(emap)}")
 
         # Organize data for saving later
         if EM2err:
