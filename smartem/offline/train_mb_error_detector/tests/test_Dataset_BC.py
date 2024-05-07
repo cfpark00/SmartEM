@@ -78,8 +78,13 @@ def test_dataset_getitem(setup_dataset):
         ), "Frame should have one channel"  # Assuming channel first format
 
         # Compare tensors
-        torch.testing.assert_close(frame_tensor, frame_tensor_manual, rtol=1e-5, atol=1e-8)
-        torch.testing.assert_close(frame_tensor, frame_tensor_manual, rtol=1e-5, atol=1e-8)
+        torch.testing.assert_close(
+            frame_tensor, frame_tensor_manual, rtol=1e-5, atol=1e-8
+        )
+        torch.testing.assert_close(
+            frame_tensor, frame_tensor_manual, rtol=1e-5, atol=1e-8
+        )
+
 
 def test_dataset_get_file_path(setup_dataset):
     temp_dir, frames_dir, masks_dir, subfolders = setup_dataset
