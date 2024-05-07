@@ -62,6 +62,16 @@ def get_logprob(logit):
 
 
 def get_prob(image, net, return_dtype=np.uint8):
+    """_summary_
+
+    Args:
+        image (np.ndarray): image
+        net (torch.nn.Module): neural network to be used
+        return_dtype (dtype, optional): datatype to be returned. Defaults to np.uint8.
+
+    Returns:
+        np.ndarray: Probabilities scaled to specified datatype
+    """
     image_dtype = image.dtype
     assert image_dtype == np.uint8 or image_dtype == np.uint16
     assert return_dtype == np.uint8 or return_dtype == np.float32
@@ -90,6 +100,15 @@ def get_best_models(models_folpath, top=3):
 
 
 def load_im(im_path, do_clahe=False):
+    """Read image from path and optionally apply CLAHE
+
+    Args:
+        im_path (str): path to image file
+        do_clahe (bool, optional): Whether to apply CLAHE as preprocessing. Defaults to False.
+
+    Returns:
+        np.ndarray: image
+    """
     im = cv2.imread(im_path, cv2.IMREAD_UNCHANGED)
     assert im.dtype == np.uint8 or im.dtype == np.uint16
     if do_clahe:
@@ -99,6 +118,12 @@ def load_im(im_path, do_clahe=False):
 
 
 def write_im(im_path, im):
+    """Write image data to path
+
+    Args:
+        im_path (str): path for output image
+        im (np.ndarray): image data
+    """
     cv2.imwrite(im_path, im)
 
 
