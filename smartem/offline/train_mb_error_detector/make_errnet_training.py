@@ -47,7 +47,6 @@ Iseg.set_model(model_class=net)
 
 # Make predictions and compute errors
 with h5py.File(in_dataset_h5, "r") as h5:
-
     regs = h5.attrs["regs"]
     data_to_save = {}
     out_regs = []
@@ -68,7 +67,6 @@ with h5py.File(in_dataset_h5, "r") as h5:
 
         # Organize data for saving later
         if EM2err:
-
             data_to_save[reg] = (im, emap)
         else:
             data_to_save[reg] = (mb_probs, emap)
