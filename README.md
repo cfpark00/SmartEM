@@ -22,14 +22,4 @@ Note: Some parts of this package, including the `ThermoFisherVerios` class which
 
 # Status
 
-- examples/smart_em_script.py: SmartEM script for running the SmartEM pipeline, Commented
-
-| File     | Commented |
-| -------- | --------- |
-| examples/smart_em_script.py  | YES       |
-| examples/smartem/smartem.py  | YES       |
-| examples/smartem/tools.py  | YES       |
-| smartem/online/microscope.py  | NO        |
-| smartem/online/get_rescan_maps.py | NO        |
-| smartem/online/models/UNet.py | NO        |
-| smartem/offline    | NO        |
+- examples/smart_em_script.py: SmartEM script for running the SmartEM pipeline
