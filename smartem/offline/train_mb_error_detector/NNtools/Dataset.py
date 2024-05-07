@@ -94,6 +94,35 @@ class DatasetNerveRing(torch.utils.data.Dataset):
 
 
 class PatchAugmentDataset(torch.utils.data.Dataset):
+    """Dataset of image segmentation data from a given HDF5 file.
+
+    Can make FusedEM images by stitching together EM images of different dwell times.
+
+    Attributes:
+        h5 (str): path to HDF5 data file
+        n_samples (int): Maximum index that can be used with this object
+        W (int): image width from HDF5 dataset
+        H (int): image height from HDF5 dataset
+        dwts (list): dwell times available in HDF5 dataset
+        regs (list): image region IDs available in HDF5 dataset
+        p_dwts_biased (list): non-uniform distribution over dwell times for heterogeneous time patches
+        p_dwts_unbiased (list): uniform distribution over dwell times for heterogeneous time patches
+        im_dtype (dtype): datatype of image data
+        ims_masks (dict): mapping from (region ID, dwell time) to (image, mask)
+        patch_size (int): size of patches for FusedEM
+        pad_sizes (list): pad sizes
+        p_seeds (list): probability parameters for Bernoulli random variable in generating random shapes
+        n_pads_per_patch (int): number of patches of higher dwell times per image
+        grid (np.ndarray): coordinates of FusedEM patch
+        pad_grids (np.ndarray): coordinates of padded patch
+        out (int): size of margin around image where FusedEM patch will not be placed
+
+    Methods:
+        random_shape_gen: generate random mask of given shape
+        get_random_image_mask: generate image/mask pair from random region/dwell time
+        get_random_image_mask_from_reg: generate image/mask pair from random dwell time and given region
+    """
+
     def __init__(
         self, file_path, n_samples, p_from_dwt_biased, p_from_dwt_unbiased, do_pad=True
     ):
@@ -105,7 +134,10 @@ class PatchAugmentDataset(torch.utils.data.Dataset):
                     'dwts': <dwell times (list: int)>, 'regs': <region names (list: str)>}
                 and datasets of shape HxW and dtype uint8 where 0 indicates background and 255 indicates foreground for the mask:
                     '<reg>/<dwt>/im', '<reg>/<dwt>/mask'
-            todo
+            n_samples (int): Maximum index that can be used with this object
+            p_dwts_biased (list): non-uniform distribution over dwell times for heterogeneous time patches
+            p_dwts_unbiased (list): uniform distribution over dwell times for heterogeneous time patches
+            do_pad (bool): whether to add patches of different dwell times to images
         """
         super().__init__()
         self.h5 = h5py.File(file_path, "r")
@@ -175,17 +207,49 @@ class PatchAugmentDataset(torch.utils.data.Dataset):
         self.out = int(np.sqrt(2) * (self.patch_size // 2 + 1) + 1)
 
     def random_shape_gen(self, grid, p_seed):
+        """Generate random mask from given shape and Bernoulli parameter
+
+        Args:
+            grid (np.ndarray): shape of this argument (excluding first dimension) dictates shape of output
+            p_seed (float): paramter of Bernoulli random variable dictating probability of 1 for each pixel
+
+        Returns:
+            nd.array: random mask
+        """
         pad = np.random.binomial(1, p_seed, grid.shape[1:])
         pad = skmorph.binary_dilation(pad, np.ones((3, 3)))
         return pad
 
     def get_random_image_mask(self, p_dwts):
+        """Return image/mask pair from random dwell time and region ID
+
+        Args:
+            p_dwts (nd.array): categorical distribution over dwell times
+
+        Returns:
+            np.ndarray: image
+            np.ndarray: ground truth mask
+            str: region ID
+            str: dwell time
+        """
         reg = np.random.choice(self.regs)
         dwt = np.random.choice(self.dwts, p=p_dwts)
         im, mask = self.ims_masks[(reg, dwt)]
         return im, mask, reg, dwt
 
     def get_random_image_mask_from_reg(self, reg, p_dwts):
+        """Return image/mask pair from random dwell time and specified region ID
+
+        Args:
+            reg (str): region ID
+            p_dwts (nd.array): categorical distribution over dwell times
+
+        Returns:
+            np.ndarray: image
+            np.ndarray: ground truth mask
+            str: region ID
+            str: dwell time
+        """
         dwt = np.random.choice(self.dwts, p=p_dwts)
         im, mask = self.ims_masks[(reg, dwt)]
         return im, mask, reg, dwt
