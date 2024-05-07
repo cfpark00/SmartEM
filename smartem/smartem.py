@@ -216,7 +216,6 @@ class SmartEM:
         Returns:
         None
         """
-        target_mat = "D:\\Users\\Lab\\Documents\\SmartEM\\data\\Mouse_NK1\\wafer_calibration\\w03_1mm_nov20.mat"
         target_mat = sio.loadmat(target_mat)
         n_targets = target_mat["nroftargets"].item()
         imaging = np.concatenate(target_mat["target"]["imaging"][:, 0], axis=0)
