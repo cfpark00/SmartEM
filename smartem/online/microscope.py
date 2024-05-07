@@ -37,6 +37,18 @@ class BaseMicroscope(metaclass=abc.ABCMeta):
 
 
 class FakeRandomMicroscope(BaseMicroscope):
+    """This class acts as a synthetic microscope, returning random image data.
+
+    Attributes:
+        params (dict): image data details including width, height, and datatype
+
+    Methods:
+        prepare_acquisition: placeholder
+        get_image: returns random image data
+        initialize: placeholder
+        close: placeholder
+    """
+
     default_params = {
         "W": 1024,
         "H": 1024,
@@ -141,6 +153,21 @@ class FakeDataMicroscope(BaseMicroscope):
 
 
 class ThermoFisherVerios(BaseMicroscope):
+    """Communicates with Thermo Fisher Verios microscope to implement SmartEM pipeline.
+
+    Attributes:
+        params (dict): microscope and SmartEM parameters
+
+    Methods:
+        initialize: connect to EM
+        close: disconnect from EM
+        prepare_acquisition: prepare EM for imaging
+        auto_focus: execute autofocus
+        auto_contrast_brightness: adjust contrast
+        auto_stig: run stig
+        get_image: read file of given dwell time
+    """
+
     default_params = {
         "tempfile": "./tempfile.bmp",
         "AS_final_horizontal_field_width_stig": 5.0e-6,

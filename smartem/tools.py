@@ -15,6 +15,7 @@ import torch
 
 clahe = cv2.createCLAHE(clipLimit=3).apply
 
+
 def float_to_int(im, dtype=np.uint8):
     """
     Convert an image from float [0,1] to integer.
@@ -26,6 +27,7 @@ def float_to_int(im, dtype=np.uint8):
     im: np.ndarray, image, integer data type
     """
     return np.clip(im * np.iinfo(dtype).max, 0, np.iinfo(dtype).max).astype(dtype)
+
 
 def int_to_float(im, dtype=np.float32):
     """
@@ -39,10 +41,11 @@ def int_to_float(im, dtype=np.float32):
     """
     return im.astype(dtype) / np.iinfo(im.dtype).max
 
-def get_logprob(logit,dim=1):
+
+def get_logprob(logit, dim=1):
     """
     Get the log probability from the logit.
-    
+
     Args:
     logit: torch.Tensor, logits
     dim: int, dimension to sum
@@ -52,6 +55,7 @@ def get_logprob(logit,dim=1):
     """
     lse = torch.logsumexp(logit, dim=dim, keepdim=True)
     return logit - lse
+
 
 def get_prob(image, net, return_dtype=np.uint8):
     """
@@ -106,6 +110,7 @@ def load_im(im_path, do_clahe=False):
         return clahe(im)
     else:
         return im
+
 
 def write_im(im_path, im):
     """

@@ -17,6 +17,7 @@ def create_dummy_image(path, size=(1024, 1024)):
     image = Image.fromarray(np.random.randint(0, 256, size, dtype=np.uint8))
     image.save(path)
 
+
 @pytest.fixture
 def setup_dataset(tmp_path):
     # Create a temporary directory
@@ -26,13 +27,13 @@ def setup_dataset(tmp_path):
     masks_dir = os.path.join(tmp_path, "masks")
 
     # Create subdirectories and images
-    subfolders = ['sub1', 'sub2']
+    subfolders = ["sub1", "sub2"]
     for sub in subfolders:
         os.makedirs(os.path.join(frames_dir, sub))
         os.makedirs(os.path.join(masks_dir, sub))
         for i in range(3):
-            img_path = os.path.join(frames_dir, sub, f'img{i}.png')
-            mask_path = os.path.join(masks_dir, sub, f'img{i}.png')
+            img_path = os.path.join(frames_dir, sub, f"img{i}.png")
+            mask_path = os.path.join(masks_dir, sub, f"img{i}.png")
             create_dummy_image(img_path)
             create_dummy_image(mask_path)
 
@@ -41,10 +42,12 @@ def setup_dataset(tmp_path):
     # Cleanup after test
     shutil.rmtree(temp_dir)
 
+
 def test_dataset_length(setup_dataset):
     temp_dir, frames_dir, masks_dir, subfolders = setup_dataset
     dataset = Dataset(temp_dir, subfol=True)
     assert len(dataset) == 6, "Dataset length does not match expected number"
+
 
 def test_dataset_getitem(setup_dataset):
     temp_dir, frames_dir, masks_dir, subfolders = setup_dataset
@@ -54,6 +57,7 @@ def test_dataset_getitem(setup_dataset):
     assert isinstance(mask, torch.Tensor), "Mask is not a tensor"
     assert frame.shape[0] == 1, "Frame should have one channel"
     assert mask.dtype == torch.int64, "Mask tensor should be of type torch.int64"
+
 
 def test_dataset_get_file_path(setup_dataset):
     temp_dir, frames_dir, masks_dir, subfolders = setup_dataset

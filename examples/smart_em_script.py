@@ -19,7 +19,7 @@ from smartem.online import microscope, get_rescan_maps
 def get_microscope(microscope_type):
     """
     Get the microscope object
-    
+
     Args:
     microscope_type: str, type of microscope to use
 
@@ -56,7 +56,7 @@ def get_get_rescan_map(
 ):  # Not a typo, we are getting get_rescan_map object
     """
     Get the get_rescan_map object
-    
+
     Args:
     get_rescan_map_type: str, type of get_rescan_map to use
 
@@ -91,7 +91,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--microscope-type", type=str, default="fakedata")
     parser.add_argument("--params-path", type=str, default="default_params.json")
-    parser.add_argument("--get-rescan-map-type", type=str, default="test")#membrane_errors")
+    parser.add_argument(
+        "--get-rescan-map-type", type=str, default="test"
+    )  # membrane_errors")
     parser.add_argument(
         "--target-mat",
         type=str,
@@ -100,7 +102,7 @@ if __name__ == "__main__":
     parser.add_argument("--save-dir", type=str, default="./data/test_94")
     args = parser.parse_args()
 
-    #Check the arguments
+    # Check the arguments
     microscope_type = args.microscope_type
     assert microscope_type in [
         "verios",
@@ -123,24 +125,24 @@ if __name__ == "__main__":
 
     # Get the microscope and get_rescan_map objects
     my_microscope = get_microscope(microscope_type)
-    with open(params_path,"r") as f:
-        params=json.load(f)
+    with open(params_path, "r") as f:
+        params = json.load(f)
         if "resolution" in params:
-            params["resolution"]=tuple(params["resolution"])
+            params["resolution"] = tuple(params["resolution"])
     get_rescan_map = get_get_rescan_map(get_rescan_map_type)
 
     # Initialize Microscope
     print("Initializing Microscope.....")
     my_smart_em = SmartEM(microscope=my_microscope, get_rescan_map=get_rescan_map)
     my_smart_em.initialize()
-    print("Microscope:",my_smart_em)
+    print("Microscope:", my_smart_em)
     print()
 
     print("Prepare acquisition.....")
-    #my_smart_em.prepare_acquisition()
+    # my_smart_em.prepare_acquisition()
 
     print("Acquiring...")
-    #Set some parameters
+    # Set some parameters
     if microscope_type == "verios":
         my_smart_em.acquire_many_grids_from_mat(
             target_mat=target_mat, save_dir=save_dir, params=params

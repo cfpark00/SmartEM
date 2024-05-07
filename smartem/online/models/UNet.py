@@ -85,6 +85,28 @@ class OutConv(nn.Module):
 
 
 class UNet(nn.Module):
+    """Straightforward UNet implementation.
+
+    Attributes:
+        n_channels (int): number of input channels of image
+        n_classes (int): number of segmentation classes for image pixels
+        bilinear (bool): whether to use bilinear interpolation or transposed convolution in the expanding path
+        inc (DoubleConv): first two convolution blocks
+        down1 (Down): maxpool contraction then two convolution blocks
+        down2 (Down): maxpool contraction then two convolution blocks
+        down3 (Down): maxpool contraction then two convolution blocks
+        down4 (Down): maxpool contraction then two convolution blocks
+        up1 (Up): expansion then two convolution blocks
+        up2 (Up): expansion then two convolution blocks
+        up3 (Up): expansion then two convolution blocks
+        up4 (Up): expansion then two convolution blocks
+        outc (OutConv): last two convolution blocks
+
+    Methods:
+        forward: pass data through UNet.
+
+    """
+
     def __init__(self, n_channels, n_classes, bilinear=False, init=0):
         super(UNet, self).__init__()
         self.n_channels = n_channels
