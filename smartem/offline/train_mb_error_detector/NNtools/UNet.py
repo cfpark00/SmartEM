@@ -12,10 +12,11 @@ class CBR(nn.Module):
         conv1 (nn.Conv2d): convolution layer
         bnorm1 (nn.BatchNorm2d): batch normalization layer
         relu1 (nn.ReLU): ReLU layer
-    
+
     Methods:
         forward: pass data through layers
     """
+
     def __init__(self, in_channels, out_channels):
         """Construct convolution block
 
@@ -45,6 +46,7 @@ class NCBR(nn.Module):
     Methods:
         forward: pass data through layers
     """
+
     def __init__(self, in_channels, out_channels, N, skip=False, skipcat=False):
         """Construct series of convolution blocks
 
@@ -149,6 +151,7 @@ class UNet(nn.Module):
     Methods:
         forward: pass data through network
     """
+
     def __init__(
         self,
         n_channels,
