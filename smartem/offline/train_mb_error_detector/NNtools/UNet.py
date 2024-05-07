@@ -6,7 +6,23 @@ import numpy as np
 
 
 class CBR(nn.Module):
+    """Simple convolution block composed of 2D convolution, batch norm, then ReLU
+
+    Attributes:
+        conv1 (nn.Conv2d): convolution layer
+        bnorm1 (nn.BatchNorm2d): batch normalization layer
+        relu1 (nn.ReLU): ReLU layer
+    
+    Methods:
+        forward: pass data through layers
+    """
     def __init__(self, in_channels, out_channels):
+        """Construct convolution block
+
+        Args:
+            in_channels (int): number of input channels
+            out_channels (int): number of output channels
+        """
         super().__init__()
         self.conv1 = nn.Conv2d(
             in_channels, out_channels, kernel_size=3, padding=1, bias=False
@@ -19,7 +35,26 @@ class CBR(nn.Module):
 
 
 class NCBR(nn.Module):
+    """Repeated convolution blocks
+
+    Attributes:
+        skip (bool): whether to include skip connection
+        skipcat (bool): whether skip connection should involve concatenation (or addition)
+        layers (list): series of convolution blocks
+
+    Methods:
+        forward: pass data through layers
+    """
     def __init__(self, in_channels, out_channels, N, skip=False, skipcat=False):
+        """Construct series of convolution blocks
+
+        Args:
+            in_channels (int): number of input channels
+            out_channels (int): number of output channels
+            N (int): number of convolution blocks
+            skip (bool, optional): whether to include skip connection. Defaults to False.
+            skipcat (bool, optional): whether skip connection should involve concatenation (or addition). Defaults to False.
+        """
         super().__init__()
         assert N > 1
         self.skip = skip
@@ -94,6 +129,26 @@ class OutConv(nn.Module):
 
 
 class UNet(nn.Module):
+    """Straightforward UNet implementation.
+
+    Attributes:
+        n_channels (int): number of input channels of image
+        n_classes (int): number of segmentation classes for image pixels
+        catorig (bool): whether to add skip connection from input into final convolution blocks
+        inc (NCBR): initial convolution block
+        down1 (DownNCBR): contracting convolution block
+        down2 (DownNCBR): contracting convolution block
+        down3 (DownNCBR): contracting convolution block
+        down4 (DownNCBR): contracting convolution block
+        up1 (UpNCBR): expanding convolution block
+        up2 (UpNCBR): expanding convolution block
+        up3 (UpNCBR): expanding convolution block
+        up4 (UpNCBR): expanding convolution block
+        outc (OutConv): final convolution block
+
+    Methods:
+        forward: pass data through network
+    """
     def __init__(
         self,
         n_channels,
