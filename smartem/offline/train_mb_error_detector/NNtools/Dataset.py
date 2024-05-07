@@ -172,9 +172,7 @@ class PatchAugmentDataset(torch.utils.data.Dataset):
                         assert im.dtype == self.im_dtype
                     pbar.update(1)
         self.h5.close()
-        # print("dwts",self.dwts)
-        # print("p_dwts_biased",self.p_dwts_biased)
-        # print("p_dwts_unbiased",self.p_dwts_unbiased)
+        
         self.patch_size = 256
         self.pad_sizes = [5, 10, 20, 40]
         self.p_seeds = [0.15, 0.5]
