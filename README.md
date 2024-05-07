@@ -18,6 +18,7 @@ Now run:
 pip install -e .
 ```
 
+Note: Some parts of this package, including the `ThermoFisherVerios` class which helps implement this method on a Thermo Fisher scanning electron microscope depend on the proprietary package `autoscript_sdb_microscope_client`.
 
 # Status
 
