@@ -2,7 +2,10 @@ import pytest
 import numpy as np
 import sys, os
 sys.path.append(os.path.abspath(os.path.join('..', 'examples')))
-from smart_em_script import get_microscope
+# from ..examples.smart_em_script import get_microscope
+
+
+
 from smartem.online.microscope import FakeRandomMicroscope, FakeDataMicroscope, ThermoFisherVerios
 
 
