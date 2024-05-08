@@ -346,33 +346,6 @@ class ThermoFisherVerios(BaseMicroscope):
         else:
             return image
 
-    """
-    def get_image_grid(self,start_x,start_y,start_z,dx,dy,):
-
-        shift = 0.8 * fov;
-        v0 = direction * ([rasterX(yi, xi)(rasterY(yi, xi))] - 1). * shift;
-        v0R = v0 * R;
-
-        pxyi = stagePositions(iN, 1:2)+v0R;
-
-        % p0.x = p0.x + v0R(1);
-        % p0.y = p0.y + v0R(2);
-
-        if norm(pxyi - pxy_last) > 50e-9 % % % if location changed by more than 50 nm, apply a move
-        p1.x = pxyi(1);
-        p1.y = pxyi(2);
-        try
-            tic;
-            microscope.specimen.stage.absolute_move(p1);
-            toc
-        catch
-        warning('failed to move the stage')
-        keyboard
-        continue
-
-    end
-    """
-
     def move(self, x, y, z=None, r=None, t=None):
         if z is None or r is None or t is None:
             p = self.microscope.specimen.stage.current_position
