@@ -18,17 +18,8 @@ Now run:
 pip install -e .
 ```
 
+Note: Some parts of this package, including the `ThermoFisherVerios` class which helps implement this method on a Thermo Fisher scanning electron microscope depend on the proprietary package `autoscript_sdb_microscope_client`.
 
 # Status
 
-- examples/smart_em_script.py: SmartEM script for running the SmartEM pipeline, Commented
-
-| File     | Commented |
-| -------- | --------- |
-| examples/smart_em_script.py  | YES       |
-| examples/smartem/smartem.py  | YES       |
-| examples/smartem/tools.py  | YES       |
-| smartem/online/microscope.py  | NO        |
-| smartem/online/get_rescan_maps.py | NO        |
-| smartem/online/models/UNet.py | NO        |
-| smartem/offline    | NO        |
+- examples/smart_em_script.py: SmartEM script for running the SmartEM pipeline

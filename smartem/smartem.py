@@ -15,6 +15,7 @@ class SmartEM:
     microscope: Microscope, microscope object
     get_rescan_map: GetRescanMap, get_rescan_map object
     """
+
     def __init__(self, microscope, get_rescan_map):
         self.microscope = microscope
         self.get_rescan_map = get_rescan_map
@@ -218,7 +219,6 @@ class SmartEM:
         Returns:
         None
         """
-        target_mat = "D:\\Users\\Lab\\Documents\\SmartEM\\data\\Mouse_NK1\\wafer_calibration\\w03_1mm_nov20.mat"
         target_mat = sio.loadmat(target_mat)
         n_targets = target_mat["nroftargets"].item()
         imaging = np.concatenate(target_mat["target"]["imaging"][:, 0], axis=0)
@@ -226,15 +226,9 @@ class SmartEM:
             target_mat["target"]["tempstagecoords"][:, 0], axis=0
         )
 
-        params["brightness"] = np.concatenate(
-            imaging["brightness"][:, 0], axis=0
-        )[:, 0]
-        params["contrasts"] = np.concatenate(imaging["contrast"][:, 0], axis=0)[
-            :, 0
-        ]
-        params["focus_val"] = np.concatenate(imaging["focus"][:, 0], axis=0)[
-            :, 0
-        ]
+        params["brightness"] = np.concatenate(imaging["brightness"][:, 0], axis=0)[:, 0]
+        params["contrasts"] = np.concatenate(imaging["contrast"][:, 0], axis=0)[:, 0]
+        params["focus_val"] = np.concatenate(imaging["focus"][:, 0], axis=0)[:, 0]
         stigx = np.concatenate(imaging["stigx"][:, 0], axis=0)[:, 0]
         stigy = np.concatenate(imaging["stigy"][:, 0], axis=0)[:, 0]
         params["stigmations"] = np.stack([stigx, stigy], axis=1)

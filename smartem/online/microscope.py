@@ -37,6 +37,18 @@ class BaseMicroscope(metaclass=abc.ABCMeta):
 
 
 class FakeRandomMicroscope(BaseMicroscope):
+    """This class acts as a synthetic microscope, returning random image data.
+
+    Attributes:
+        params (dict): image data details including width, height, and datatype
+
+    Methods:
+        prepare_acquisition: placeholder
+        get_image: returns random image data
+        initialize: placeholder
+        close: placeholder
+    """
+
     default_params = {
         "W": 1024,
         "H": 1024,
@@ -76,9 +88,26 @@ class FakeRandomMicroscope(BaseMicroscope):
 
 
 class FakeDataMicroscope(BaseMicroscope):
+    """This class acts as a synthetic microscope, returning data from saved files.
+
+    Attributes:
+        params (dict): paths of images at various dwell times
+
+    Methods:
+        initialize: placeholder
+        close: placeholder
+        prepare_acquisition: placeholder
+        get_image: read file of given dwell time
+    """
+
     default_params = {"images_ns": {}}
 
     def __init__(self, params=None):
+        """Initialize microscope with paths.
+
+        Args:
+            params (dict, optional): paths of images at various dwell times. Defaults to None.
+        """
         super().__init__()
         self.params = self.default_params
         if params is not None:
@@ -92,6 +121,18 @@ class FakeDataMicroscope(BaseMicroscope):
         pass
 
     def get_image(self, params):
+        """Read file and return data for image of given dwell time.
+
+        Args:
+            params (dict): desired dwell time
+
+        Raises:
+            ValueError: if file path for given dwell time is not available
+            ValueError: if file path for given dwell time does not exist
+
+        Returns:
+            np.ndarray: image
+        """
         dwt = params["dwell_time"]
         dwt_ns = int(dwt * 1e9)
         if dwt_ns not in self.params["images_ns"].keys():
@@ -112,6 +153,21 @@ class FakeDataMicroscope(BaseMicroscope):
 
 
 class ThermoFisherVerios(BaseMicroscope):
+    """Communicates with Thermo Fisher Verios microscope to implement SmartEM pipeline.
+
+    Attributes:
+        params (dict): microscope and SmartEM parameters
+
+    Methods:
+        initialize: connect to EM
+        close: disconnect from EM
+        prepare_acquisition: prepare EM for imaging
+        auto_focus: execute autofocus
+        auto_contrast_brightness: adjust contrast
+        auto_stig: run stig
+        get_image: read file of given dwell time
+    """
+
     default_params = {
         "tempfile": "./tempfile.bmp",
         "AS_final_horizontal_field_width_stig": 5.0e-6,
@@ -250,7 +306,9 @@ class ThermoFisherVerios(BaseMicroscope):
         self.microscope.imaging.set_active_view(1)
         self.microscope.imaging.set_active_device(self.ImagingDevice.ELECTRON_BEAM)
         self.microscope.beams.electron_beam.horizontal_field_width.value = fov[0]
-        self.microscope.patterning.set_default_beam_type(self.sdb_enums.BeamType.ELECTRON)
+        self.microscope.patterning.set_default_beam_type(
+            self.sdb_enums.BeamType.ELECTRON
+        )
 
         bit_depth = 16
         if "rescan_map" in params.keys():
@@ -263,7 +321,8 @@ class ThermoFisherVerios(BaseMicroscope):
             tools.write_im(self.params["tempfile"], rescan_map)
             bpd = self.BitmapPatternDefinition.load(self.params["tempfile"])
             pattern = self.microscope.patterning.create_bitmap(
-                0, 0, fov[0], fov[1], params["dwell_time"], bpd)
+                0, 0, fov[0], fov[1], params["dwell_time"], bpd
+            )
             pattern.dwell_time = params["dwell_time"]
             pattern.pass_count = 1
             pattern.scan_type = self.sdb_enums.PatternScanType.RASTER
@@ -286,33 +345,6 @@ class ThermoFisherVerios(BaseMicroscope):
             return np.iinfo(image.dtype).max - image
         else:
             return image
-
-    """
-    def get_image_grid(self,start_x,start_y,start_z,dx,dy,):
-
-        shift = 0.8 * fov;
-        v0 = direction * ([rasterX(yi, xi)(rasterY(yi, xi))] - 1). * shift;
-        v0R = v0 * R;
-
-        pxyi = stagePositions(iN, 1:2)+v0R;
-
-        % p0.x = p0.x + v0R(1);
-        % p0.y = p0.y + v0R(2);
-
-        if norm(pxyi - pxy_last) > 50e-9 % % % if location changed by more than 50 nm, apply a move
-        p1.x = pxyi(1);
-        p1.y = pxyi(2);
-        try
-            tic;
-            microscope.specimen.stage.absolute_move(p1);
-            toc
-        catch
-        warning('failed to move the stage')
-        keyboard
-        continue
-
-    end
-    """
 
     def move(self, x, y, z=None, r=None, t=None):
         if z is None or r is None or t is None:
