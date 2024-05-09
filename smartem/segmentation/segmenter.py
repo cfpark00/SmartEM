@@ -97,3 +97,13 @@ class Segmenter:
 
         self.labels = labels
         return labels
+    
+    def get_labels_from_membrane(self, membranes):
+        if "watershed" not in self.segmenter_function.__name__.lower():
+            membranes = 255 - membranes
+            labels = self.segmenter_function(membranes)
+        else:
+            labels = self.segmenter_function(membranes)
+        
+        self.labels = labels
+        return labels
