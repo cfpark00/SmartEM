@@ -16,7 +16,6 @@ from smartem.segmentation.utils import watershed
 
 
 class Segmenter:
-
     def __init__(self, model_path=None, segmenter_function=None, device="auto"):
         self.model_path = model_path
         self.model = None
@@ -39,7 +38,12 @@ class Segmenter:
         self.model.load_state_dict(weights)
         self.model.eval()
 
-    def preprocess(self, img):
+    def set_model_directly(self, model):
+        # self.model = model.to(self.device)
+        self.model = torch.load(self.model_path, map_location=self.device)
+        self.model.eval()
+
+    def preprocess(self, img, for_smp=False):
         if img.ndim == 2:
             if img.shape[0] % 32 != 0:
                 img = img[: -(img.shape[0] % 32), :]
@@ -56,14 +60,20 @@ class Segmenter:
                 img = img[:, :, : -(img.shape[2] % 32)]
         else:
             raise ValueError("Image shape not understood")
+        
+        if for_smp == True:
+            # check if the first dimension is 3 or not
+            if not img.shape[0] == 3:
+                # duplicate the first channel to make it 3 channels
+                img = np.repeat(img, 3, axis=0)
 
         if (img > 1).any():
             img = img / 255.0
 
         return img
 
-    def get_membranes(self, img, get_probs=False):
-        img = self.preprocess(img)
+    def get_membranes(self, img, get_probs=False, threshold=0.5, for_smp = False):
+        img = self.preprocess(img, for_smp=for_smp)
         img = torch.as_tensor(img.copy()).float().contiguous()
         img = img.unsqueeze(0)
         img = img.to(device=self.device, dtype=torch.float32)
@@ -72,10 +82,11 @@ class Segmenter:
             output = self.model(img).cpu()
             # binarize the output based on the threshold of 0.5
             if (output >= 0).all() and (output <= 1).all():
-                mask = output > 0.5
+                mask = output > threshold
             else:
+                # print("Output is not between 0 and 1, applying softmax...")
                 output = torch.softmax(output, dim=1)
-                mask = output > 0.5
+                mask = output > threshold
 
         mask = mask.squeeze().numpy()[1]
         mask = mask.astype(np.uint8) * 255
