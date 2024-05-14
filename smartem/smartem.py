@@ -19,12 +19,12 @@ class SmartEM:
         self.microscope = microscope
         self.get_rescan_map = get_rescan_map
 
-    def initialize(self):
+    def initialize(self, unet_version):
         """
         Initialize the microscope and the get_rescan_map object.
         """
         self.microscope.initialize()
-        self.get_rescan_map.initialize()
+        self.get_rescan_map.initialize(unet_version)
 
     def prepare_acquisition(self):
         """
@@ -55,7 +55,9 @@ class SmartEM:
         params = copy.deepcopy(params)
         params.update({"dwell_time": params["fast_dwt"]})
         fast_em = self.microscope.get_image(params=params)
+        #print(f"before get rescan mask: {fast_em.shape} {fast_em.dtype}: {np.amin(fast_em)}-{np.amax(fast_em)}")
         rescan_map, additional = self.get_rescan_map(fast_em)
+        #print(f" rescan map{rescan_map.shape} {rescan_map.dtype}: {np.amin(rescan_map)}-{np.amax(rescan_map)}")
         params.update({"dwell_time": params["slow_dwt"], "rescan_map": rescan_map})
         rescan_em = self.microscope.get_image(params=params)
 

@@ -9,8 +9,8 @@ import warnings
 import cv2
 
 from smartem import tools
-from .models import UNet
-
+from smartem.online.models import UNet as UNet_online
+from smartem.offline.train_mb_error_detector.NNtools import UNet as UNet_offline
 
 class GetRescanMap(metaclass=abc.ABCMeta):
     def __init__(self):
@@ -108,17 +108,22 @@ class GetRescanMapMembraneErrors(GetRescanMap):
             self.params["rescan_p_thres"] is not None
         )
 
-    def initialize(self):
+    def initialize(self, unet_version):
         if self.params["device"] == "auto":
             self.params["device"] = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = torch.device(self.params["device"])
 
-        self.em2mb_net = UNet.UNet(1, 2)
+        if unet_version == "offline":
+            self.em2mb_net = UNet_offline.UNet(1, 2)
+            self.error_net = UNet_offline.UNet(1, 2)
+        elif unet_version == "online":
+            self.em2mb_net = UNet_online.UNet(1, 2)
+            self.error_net = UNet_online.UNet(1, 2)
+
         self.em2mb_net.load_state_dict(torch.load(self.params["em2mb_net"]))
         self.em2mb_net.eval()
         self.em2mb_net.to(self.device)
 
-        self.error_net = UNet.UNet(1, 2)
         self.error_net.load_state_dict(torch.load(self.params["error_net"]))
         self.error_net.eval()
         self.error_net.to(self.device)
@@ -138,8 +143,10 @@ class GetRescanMapMembraneErrors(GetRescanMap):
         del self.error_net
 
     def get_rescan_map(self, fast_em):
+        #print(f"before clahe: {fast_em.shape} {fast_em.dtype}: {np.amin(fast_em)}-{np.amax(fast_em)}")
         if self.params["do_clahe"]:
             fast_em = self.clahe(fast_em)
+        #print(f"after clahe: {fast_em.shape} {fast_em.dtype}: {np.amin(fast_em)}-{np.amax(fast_em)}")
         mb = tools.get_prob(fast_em, self.em2mb_net)
         error_prob = tools.get_prob(mb, self.error_net, return_dtype=np.float32)
 

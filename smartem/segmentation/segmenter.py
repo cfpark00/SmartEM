@@ -12,45 +12,60 @@ import logging
 import dis
 
 import importlib
-from utils import watershed
-
+from smartem.segmentation.utils import watershed
 
 
 class Segmenter:
 
-    def __init__(self, model_path = None, segmenter_function = None, device = "auto"):
+    def __init__(self, model_path=None, segmenter_function=None, device="auto"):
         self.model_path = model_path
         self.model = None
         if device == "auto":
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         else:
             self.device = device
+
+        if "watershed" in segmenter_function.__name__.lower():
+            print("Using watershed function...")
+        else:
+            print("Not using custom watershed function - will invert images before segmenting...")
         self.segmenter_function = segmenter_function
+
         self.labels = None
 
     def set_model(self, model_class):
-        # self.model_path = model_path
-        # self.model = model_class.to(self.device)
-        self.model = torch.load(self.model_path, map_location=self.device)
-        # weights = torch.load(self.model_path, map_location=self.device)
-        # print(self.model.load_state_dict(weights))
+        self.model = model_class.to(self.device)
+        weights = torch.load(self.model_path, map_location=self.device)
+        self.model.load_state_dict(weights)
         self.model.eval()
 
-    def preprocess(self,img):
+    def set_model_directly(self):
+        self.model = torch.load(self.model_path, map_location = self.device)
+        self.model.eval()
+
+    def preprocess(self, img):
         if img.ndim == 2:
             if img.shape[0] % 32 != 0:
-                img = img[:-(img.shape[0] % 32), :]
+                img = img[: -(img.shape[0] % 32), :]
             if img.shape[1] % 32 != 0:
-                img = img[:, :-(img.shape[1] % 32)]
-            img = img[np.newaxis, ...]
+                img = img[:, : -(img.shape[1] % 32)]
+
+            img = np.stack([img, img, img], axis=0)
+            # if "mit" in  self.model_path:
+            #     # make 3 channels
+            #     img = np.stack([img, img, img], axis=0)
+            # else:
+            #     img = img[np.newaxis, ...]
+
+            
         elif img.ndim == 3:
             min_axis = np.argmin(img.shape)
             if min_axis == len(img.shape) - 1:
                 img = img.transpose((2, 0, 1))
             if img.shape[1] % 32 != 0:
-                img = img[:, :-(img.shape[1] % 32), :]
+                img = img[:, : -(img.shape[1] % 32), :]
             if img.shape[2] % 32 != 0:
-                img = img[:, :, :-(img.shape[2] % 32)]
+                img = img[:, :, : -(img.shape[2] % 32)]
         else:
             raise ValueError("Image shape not understood")
 
@@ -59,12 +74,8 @@ class Segmenter:
 
         return img
 
-    def get_membranes(self, img, get_probs = False):
-        # print(img.shape)
-        # img = self.preprocess(img)
-        # print("After preprocessing", img.shape)
-        img = img.transpose(2, 0, 1)
-        img = img[:, :-(img.shape[1] % 32), :]
+    def get_membranes(self, img, get_probs=False):
+        img = self.preprocess(img)
         img = torch.as_tensor(img.copy()).float().contiguous()
         img = img.unsqueeze(0)
         img = img.to(device=self.device, dtype=torch.float32)
@@ -76,10 +87,8 @@ class Segmenter:
             if (output >= 0).all() and (output <= 1).all():
                 mask = output > 0.5
             else:
-                
-                output = torch.sigmoid(output)
+                output = torch.softmax(output, dim=1)
                 mask = output > 0.5
-
 
         mask = mask.squeeze().numpy()[1]
         mask = mask.astype(np.uint8) * 255
@@ -92,24 +101,23 @@ class Segmenter:
             return mask, output
 
     def get_labels(self, img):
-        membranes = self.get_membranes(img)
-        # print the type of 
-        # if self.segmenter_function.__code__.co_code == watershed.__code__.co_code:
-        if "watershed" in self.segmenter_function.__name__.lower():
-            print("Using watershed function")
-        else:
-            # print("Inverting the image as not using custom watershed function")
+        membranes, membrane_probs = self.get_membranes(img, get_probs=True)
+
+        if "watershed" not in self.segmenter_function.__name__.lower():
             membranes = 255 - membranes
-            
-        
-        labels = self.segmenter_function(membranes)
+            labels = self.segmenter_function(membranes)
+        else:
+            labels = self.segmenter_function(membranes)
+
         self.labels = labels
         return labels
     
-    def calculate_voi(self,gt_labels):
-        if self.labels is None:
-            raise ValueError("No labels to compare")
-        return voi(gt_labels, self.labels)
+    def get_labels_from_membrane(self, membrane):
+        if "watershed" not in self.segmenter_function.__name__.lower():
+            membrane = 255 - membrane
+            labels = self.segmenter_function(membrane)
+        else:
+            labels = self.segmenter_function(membrane)
 
-
-        
+        self.labels = labels
+        return labels
