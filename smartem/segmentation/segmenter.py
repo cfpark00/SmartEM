@@ -50,12 +50,12 @@ class Segmenter:
             if img.shape[1] % 32 != 0:
                 img = img[:, : -(img.shape[1] % 32)]
 
-            img = np.stack([img, img, img], axis=0)
-            # if "mit" in  self.model_path:
-            #     # make 3 channels
-            #     img = np.stack([img, img, img], axis=0)
-            # else:
-            #     img = img[np.newaxis, ...]
+            # img = np.stack([img, img, img], axis=0)
+            if "mit" in  self.model_path:
+                # make 3 channels
+                img = np.stack([img, img, img], axis=0)
+            else:
+                img = img[np.newaxis, ...]
 
             
         elif img.ndim == 3:
