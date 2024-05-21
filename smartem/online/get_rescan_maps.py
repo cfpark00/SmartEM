@@ -10,8 +10,8 @@ import cv2
 
 from smartem import tools
 
-# from .models import UNet
-from smartem.offline.train_mb_error_detector.NNtools import UNet
+from smartem.offline.train_mb_error_detector.NNtools import UNet as UNet_offline
+from smartem.online.models import UNet as UNet_online
 
 
 class GetRescanMap(metaclass=abc.ABCMeta):
