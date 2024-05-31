@@ -36,6 +36,7 @@ def test_model_loading():
     )
     segmenter = Segmenter(model_path=model_path)
 
+
 @pytest.fixture
 def model_files(tmp_path):
     # Setup: Create U-Net models and save their state dicts to temporary files
@@ -52,9 +53,10 @@ def model_files(tmp_path):
     # Yield paths for use in tests
     yield str(em2mb_path), str(error_path)
 
+
 def test_segmentation_output(model_files):
     em2mb_path, error_path = model_files
-    segmenter = Segmenter(model_path = em2mb_path)
+    segmenter = Segmenter(model_path=em2mb_path)
     segmenter.set_model(UNet.UNet(1, 2))
 
     # Create random test image going from size 256x256 to 2048x2048 by going double each time
@@ -66,7 +68,10 @@ def test_segmentation_output(model_files):
         mask, probs = segmenter.get_membranes(test_image, get_probs=True)
 
         # Check if probabilities are between 0 and 1
-        assert (probs >= 0).all() and (probs <= 1).all(), f"Probabilities are not between 0 and 1 for image size {2**i}x{2**i}"
+        assert (probs >= 0).all() and (
+            probs <= 1
+        ).all(), f"Probabilities are not between 0 and 1 for image size {2**i}x{2**i}"
         probs_sum = probs.sum(axis=1)
-        assert np.allclose(probs_sum, 1, atol=1e-6), f"Probabilities do not sum to 1 across the channel dimension for image size {2**i}x{2**i}"
-
+        assert np.allclose(
+            probs_sum, 1, atol=1e-6
+        ), f"Probabilities do not sum to 1 across the channel dimension for image size {2**i}x{2**i}"
