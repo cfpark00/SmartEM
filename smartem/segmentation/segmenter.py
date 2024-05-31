@@ -72,7 +72,13 @@ class Segmenter:
             output = self.model(img).cpu()
             # binarize the output based on the threshold of 0.5
             if (output >= 0).all() and (output <= 1).all():
-                mask = output > 0.5
+                # output = torch.softmax(output, dim=1)
+                # check if sum across dimension 1 is 1
+                if (output.sum(dim=1) == 1).all():
+                    mask = output > 0.5
+                else:
+                    output = torch.softmax(output, dim=1)
+                    mask = output > 0.5
             else:
                 output = torch.softmax(output, dim=1)
                 mask = output > 0.5
@@ -83,7 +89,7 @@ class Segmenter:
         if not get_probs:
             return mask
         else:
-            output = output.squeeze().numpy()[1]
+            # output = output.squeeze().numpy()[1]
             return mask, output
 
     def get_labels(self, img):
