@@ -75,3 +75,11 @@ def test_segmentation_output(model_files):
         assert np.allclose(
             probs_sum, 1, atol=1e-6
         ), f"Probabilities do not sum to 1 across the channel dimension for image size {2**i}x{2**i}"
+
+        # Check for NaNs or Infs
+        assert not np.isnan(probs).any(), "Probabilities contain NaN values"
+        assert not np.isinf(probs).any(), "Probabilities contain Inf values"
+
+        # Check for numerical stability
+        assert np.all(probs > 1e-8), "Probabilities contain very small values"
+        assert np.all(probs < 1 - 1e-8), "Probabilities contain very large values"
