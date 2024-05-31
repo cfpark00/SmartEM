@@ -5,6 +5,7 @@ import smartem
 from smartem.segmentation.segmenter import Segmenter
 from unittest.mock import MagicMock
 from smartem.offline.train_mb_error_detector.NNtools import UNet
+import numpy as np
 
 
 def test_default_initialization():
@@ -52,5 +53,20 @@ def model_files(tmp_path):
     yield str(em2mb_path), str(error_path)
 
 def test_segmentation_output(model_files):
-    pass
+    em2mb_path, error_path = model_files
+    segmenter = Segmenter(model_path = em2mb_path)
+    segmenter.set_model(UNet.UNet(1, 2))
+
+    # Create random test image going from size 256x256 to 2048x2048 by going double each time
+    test_images = []
+    for i in range(7, 11):
+        test_image = np.random.rand(2**i, 2**i)
+        test_image = (test_image * 255).astype(np.uint8)
+        # Get the output probabilities
+        mask, probs = segmenter.get_membranes(test_image, get_probs=True)
+
+        # Check if probabilities are between 0 and 1
+        assert (probs >= 0).all() and (probs <= 1).all(), f"Probabilities are not between 0 and 1 for image size {2**i}x{2**i}"
+        probs_sum = probs.sum(axis=1)
+        assert np.allclose(probs_sum, 1, atol=1e-6), f"Probabilities do not sum to 1 across the channel dimension for image size {2**i}x{2**i}"
 
