@@ -4,6 +4,7 @@ from skimage import measure
 import smartem
 from smartem.segmentation.segmenter import Segmenter
 from unittest.mock import MagicMock
+from smartem.offline.train_mb_error_detector.NNtools import UNet
 
 
 def test_default_initialization():
@@ -33,3 +34,23 @@ def test_model_loading():
         "/home/ssawmya-local/FM_work/SmartEM/smartem/segmentation/unet_50_2.81e-02.pth"
     )
     segmenter = Segmenter(model_path=model_path)
+
+@pytest.fixture
+def model_files(tmp_path):
+    # Setup: Create U-Net models and save their state dicts to temporary files
+    em2mb_net = UNet.UNet(1, 2)
+    error_net = UNet.UNet(1, 2)
+
+    # Using tempfile.TemporaryDirectory to handle cleanup automatically
+    em2mb_path = tmp_path / "em2mb_net.pth"
+    error_path = tmp_path / "error_net.pth"
+
+    torch.save(em2mb_net.state_dict(), em2mb_path)
+    torch.save(error_net.state_dict(), error_path)
+
+    # Yield paths for use in tests
+    yield str(em2mb_path), str(error_path)
+
+def test_segmentation_output(model_files):
+    pass
+
