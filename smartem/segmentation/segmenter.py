@@ -24,11 +24,6 @@ class Segmenter:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         else:
             self.device = device
-
-        # if "watershed" in segmenter_function.__name__.lower():
-        #     print("Using watershed function...")
-        # else:
-        #     print("Not using custom watershed function - will invert images before segmenting...")
         self.segmenter_function = segmenter_function
 
         self.labels = None
@@ -62,7 +57,28 @@ class Segmenter:
 
         return img
 
-    def get_membranes(self, img, get_probs=False):
+    def get_membranes(self, img, get_probs=False, membrane_threshold=0.5):
+        """
+        Processes an image to generate a binary membrane mask using a pre-trained model.
+
+        Parameters:
+        img : numpy.ndarray
+            Input image array. It can be of shape (H, W, C) for a color image
+            or (H, W) for a grayscale image, where H is height, W is width, and
+            C is the number of channels.
+        get_probs : bool
+            If True, the function also returns the output probabilities from the model.
+            Default is False.
+        membrane_threshold : float
+            Threshold value for binarizing the output probabilities. Default is 0.5.
+
+        Returns:
+        mask : numpy.ndarray
+            Binary membrane mask of shape (H, W) with values 0 or 255.
+        output : torch.Tensor, optional
+            Output probabilities from the model of shape (1, C, H, W),
+            where C is the number of classes. Only provided if 'get_probs' is True.
+        """
         img = self.preprocess(img)
         img = torch.as_tensor(img.copy()).float().contiguous()
         img = img.unsqueeze(0)
@@ -70,12 +86,10 @@ class Segmenter:
 
         with torch.no_grad():
             output = self.model(img).cpu()
-            # binarize the output based on the threshold of 0.5
-            if (output >= 0).all() and (output <= 1).all():
-                mask = output > 0.5
-            else:
-                output = torch.softmax(output, dim=1)
-                mask = output > 0.5
+            # apply softmax to the output
+            output = torch.softmax(output, dim=1)
+            # binarize the output based on the threshold of 0.5 or the custom membrane_threshold
+            mask = output > membrane_threshold
 
         mask = mask.squeeze().numpy()[1]
         mask = mask.astype(np.uint8) * 255
@@ -83,7 +97,6 @@ class Segmenter:
         if not get_probs:
             return mask
         else:
-            output = output.squeeze().numpy()[1]
             return mask, output
 
     def get_labels(self, img):
