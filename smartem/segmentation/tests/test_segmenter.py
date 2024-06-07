@@ -70,8 +70,6 @@ def test_segmentation_output(model_files):
             probs <= 1
         ).all(), f"Probabilities are not between 0 and 1 for image size {2**i}x{2**i}"
         probs_sum = probs.sum(axis=1)
-
-        probs_sum = probs.sum(axis=1)
         assert np.allclose(
             probs_sum, 1, atol=1e-6
         ), f"Probabilities do not sum to 1 across the channel dimension for image size {2**i}x{2**i}"
