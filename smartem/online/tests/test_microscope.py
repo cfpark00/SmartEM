@@ -1,4 +1,4 @@
-from smartem.online.microscope import FakeDataMicroscope
+from smartem.online.microscope import FakeDataMicroscope, ThermoFisherVerios
 import pytest
 from skimage import io
 import numpy as np
@@ -32,3 +32,10 @@ def test_FakeDataMicroscope_init(tmp_path):
         assert (im == dt_to_im[dt]).all()
     with pytest.raises(ValueError):  # dwell time does not exist
         microscope.get_image({"dwell_time": 1000e-9})
+
+
+def test_ThermoFisherVerios_init():
+    params = {"ip": "127.0.0.1"}
+
+    # test initialization
+    ThermoFisherVerios(params)
