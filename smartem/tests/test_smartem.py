@@ -11,6 +11,20 @@ from smartem.online import microscope as microscope_client
 from smartem.online import get_rescan_maps
 
 
+def test_get_microscope_import():
+
+    assert __import__("smartem.online.microscope")
+    from smartem.online.microscope import (
+        FakeRandomMicroscope,
+        FakeDataMicroscope,
+        ThermoFisherVerios,
+    )
+
+    assert FakeRandomMicroscope
+    assert FakeDataMicroscope
+    assert ThermoFisherVerios
+
+
 def test_smart_em_operations_using_fake_data_and_microscope():
     # initializing fake random microscope
     params = {"W": 1024, "H": 1024, "dtype": np.uint16}
