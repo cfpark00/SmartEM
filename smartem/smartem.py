@@ -60,6 +60,8 @@ class SmartEM:
         params.update({"dwell_time": params["slow_dwt"], "rescan_map": rescan_map})
         rescan_em = self.microscope.get_image(params=params)
 
+        print(f"fast: {fast_em.shape} rescan: {rescan_em.shape} rescan map {rescan_map.shape}")
+
         if "plot" in params and params["plot"]:
             fig = show_smart(
                 fast_em,

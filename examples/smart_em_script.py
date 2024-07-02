@@ -28,7 +28,8 @@ def get_microscope(microscope_type):
     """
     if microscope_type == "verios":
         # This is the microscope used for the SmartEM paper
-        params = {"ip": "192.168.0.1"}
+        params = {"ip": "192.168.0.1"} # online mode (microscope active)
+        params = {"ip": "localhost"} # offline mode
         my_microscope = microscope.ThermoFisherVerios(params=params)
     elif microscope_type == "fake":
         # This is a fake microscope that generates random images
@@ -139,7 +140,7 @@ if __name__ == "__main__":
     print()
 
     print("Prepare acquisition.....")
-    # my_smart_em.prepare_acquisition()
+    my_smart_em.prepare_acquisition()
 
     print("Acquiring...")
     # Set some parameters
