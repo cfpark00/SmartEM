@@ -4,8 +4,9 @@ import torch
 import cv2
 import os, sys
 
-from smartem.tools import float_to_int, int_to_float, load_im, write_im, get_prob
 
+from smartem.tools import float_to_int, int_to_float, load_im, write_im, get_prob
+import smartem
 from smartem.offline.train_mb_error_detector.NNtools import UNet
 
 

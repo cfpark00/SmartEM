@@ -6,6 +6,7 @@ import sys, os
 
 # sys.path.append(os.path.abspath(os.path.join('../..', 'examples')))
 # from smart_em_script import get_microscope, get_get_rescan_map
+import smartem
 from smartem.smartem import SmartEM
 from smartem.online import microscope as microscope_client
 from smartem.online import get_rescan_maps
