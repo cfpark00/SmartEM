@@ -112,7 +112,6 @@ def test_smart_em_acquire_many_grids(get_smartem, tmp_path):
             params["resolution"] = tuple(params["resolution"])
         params["plot"] = False
 
-
     with open(
         repo_dir / "examples/default_imaging_params.json",
         "r",

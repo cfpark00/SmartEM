@@ -90,7 +90,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--microscope-type", type=str, default="fakedata")
-    parser.add_argument("--params-path", type=str, default="examples/default_smartem_params.json")
+    parser.add_argument(
+        "--params-path", type=str, default="examples/default_smartem_params.json"
+    )
     parser.add_argument(
         "--get-rescan-map-type", type=str, default="test"
     )  # membrane_errors")
