@@ -104,13 +104,21 @@ def test_smart_em_acquire_many_grids(get_smartem, tmp_path):
     smart_em.initialize()
 
     with open(
-        repo_dir / "default_params.json",
+        repo_dir / "examples/default_smartem_params.json",
         "r",
     ) as f:
         params = json.load(f)
         if "resolution" in params:
             params["resolution"] = tuple(params["resolution"])
         params["plot"] = False
+
+
+    with open(
+        repo_dir / "examples/default_imaging_params.json",
+        "r",
+    ) as f:
+        params_imaging = json.load(f)
+        params.update(params_imaging)
 
     smart_em.acquire_many_grids(
         coordinates=params["coordinates"], params=params, save_dir=tmp_path
