@@ -3,6 +3,7 @@ import numpy as np
 import sys, os
 import json
 from pathlib import Path
+import time
 
 # sys.path.append(os.path.abspath(os.path.join('../..', 'examples')))
 # from smart_em_script import get_microscope, get_get_rescan_map
@@ -10,6 +11,8 @@ import smartem
 from smartem.smartem import SmartEM
 from smartem.online import microscope as microscope_client
 from smartem.online import get_rescan_maps
+
+from smartem.smartem_par import par_test
 
 repo_dir = Path(os.path.dirname(os.path.abspath(__file__))).parents[1]
 
@@ -123,3 +126,18 @@ def test_smart_em_acquire_many_grids(get_smartem, tmp_path):
     smart_em.acquire_many_grids(
         coordinates=params["coordinates"], params=params, save_dir=tmp_path
     )
+
+
+def test_par_test():
+    partest = par_test()
+    locs = [i for i in range(10)]
+    sleep_a, sleep_b = 1, 0.5
+    total_time_serial = len(locs) * (sleep_a + sleep_b)
+
+    tic = time.time()
+    rescan_masks = partest.run(locs, sleep_a, sleep_b)
+    toc = time.time()
+    diff = toc - tic
+
+    assert all([i + 1 == j for i, j in zip(locs, rescan_masks)])
+    assert diff < total_time_serial
