@@ -1,8 +1,8 @@
 import pytest
 import numpy as np
-
-import pytest
 import sys, os
+import json
+from pathlib import Path
 
 # sys.path.append(os.path.abspath(os.path.join('../..', 'examples')))
 # from smart_em_script import get_microscope, get_get_rescan_map
@@ -11,8 +11,11 @@ from smartem.smartem import SmartEM
 from smartem.online import microscope as microscope_client
 from smartem.online import get_rescan_maps
 
+repo_dir = Path(os.path.dirname(os.path.abspath(__file__))).parents[1]
 
-def test_smart_em_operations_using_fake_data_and_microscope():
+
+@pytest.fixture
+def get_smartem():
     # initializing fake random microscope
     params = {"W": 1024, "H": 1024, "dtype": np.uint16}
     microscope = microscope_client.FakeRandomMicroscope(params=params)
@@ -20,12 +23,17 @@ def test_smart_em_operations_using_fake_data_and_microscope():
     # initializing get_rescan_map
     params = {"type": "half", "fraction": 0.5}
     get_rescan_map = get_rescan_maps.GetRescanMapTest(params=params)
-
-    # test initialization
     smart_em = SmartEM(microscope, get_rescan_map)
-    smart_em.initialize()
+
     assert smart_em.microscope == microscope
     assert smart_em.get_rescan_map == get_rescan_map
+
+    yield smart_em
+
+
+def test_smart_em_operations_using_fake_data_and_microscope(get_smartem):
+    smart_em = get_smartem
+    smart_em.initialize()
 
     # test prepare_acquisition
     smart_em.prepare_acquisition()
@@ -90,3 +98,28 @@ def test_smart_em_operations_using_fake_data_and_microscope():
                 decimal=5,
                 err_msg=f"Data mismatch in plot titled '{expected_title}'",
             )
+
+
+def test_smart_em_acquire_many_grids(get_smartem, tmp_path):
+    smart_em = get_smartem
+    smart_em.initialize()
+
+    with open(
+        repo_dir / "examples/default_smartem_params.json",
+        "r",
+    ) as f:
+        params = json.load(f)
+        if "resolution" in params:
+            params["resolution"] = tuple(params["resolution"])
+        params["plot"] = False
+
+    with open(
+        repo_dir / "examples/default_imaging_params.json",
+        "r",
+    ) as f:
+        params_imaging = json.load(f)
+        params.update(params_imaging)
+
+    smart_em.acquire_many_grids(
+        coordinates=params["coordinates"], params=params, save_dir=tmp_path
+    )
