@@ -67,7 +67,6 @@ class FakeRandomMicroscope(BaseMicroscope):
 
     def get_image(self, params):
         if "sleep_time" in params.keys():
-            print(f"micro sleep: {params['sleep_time']}")
             time.sleep(params["sleep_time"])
         W = params["W"] if "W" in params else 1024
         H = params["H"] if "H" in params else 1024
