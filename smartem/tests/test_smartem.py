@@ -9,6 +9,7 @@ import time
 # from smart_em_script import get_microscope, get_get_rescan_map
 import smartem
 from smartem.smartem import SmartEM
+from smartem.smartem_par import SmartEMPar
 from smartem.online import microscope as microscope_client
 from smartem.online import get_rescan_maps
 
@@ -32,6 +33,44 @@ def get_smartem():
     assert smart_em.get_rescan_map == get_rescan_map
 
     yield smart_em
+
+
+@pytest.fixture
+def get_smartem_par():
+    # initializing fake random microscope
+    params = {"W": 1024, "H": 1024, "dtype": np.uint16}
+    microscope = microscope_client.FakeRandomMicroscope(params=params)
+
+    # initializing get_rescan_map
+    params = {"type": "half", "fraction": 0.5}
+    get_rescan_map = get_rescan_maps.GetRescanMapTest(params=params)
+    smart_em = SmartEMPar(microscope, get_rescan_map)
+
+    assert smart_em.microscope == microscope
+    assert smart_em.get_rescan_map == get_rescan_map
+
+    yield smart_em
+
+
+@pytest.fixture
+def get_default_params():
+    with open(
+        repo_dir / "examples/default_smartem_params.json",
+        "r",
+    ) as f:
+        params = json.load(f)
+        if "resolution" in params:
+            params["resolution"] = tuple(params["resolution"])
+        params["plot"] = False
+
+    with open(
+        repo_dir / "examples/default_imaging_params.json",
+        "r",
+    ) as f:
+        params_imaging = json.load(f)
+        params.update(params_imaging)
+
+    return params
 
 
 def test_smart_em_operations_using_fake_data_and_microscope(get_smartem):
@@ -103,25 +142,11 @@ def test_smart_em_operations_using_fake_data_and_microscope(get_smartem):
             )
 
 
-def test_smart_em_acquire_many_grids(get_smartem, tmp_path):
+def test_smart_em_acquire_many_grids(get_smartem, get_default_params, tmp_path):
     smart_em = get_smartem
     smart_em.initialize()
 
-    with open(
-        repo_dir / "examples/default_smartem_params.json",
-        "r",
-    ) as f:
-        params = json.load(f)
-        if "resolution" in params:
-            params["resolution"] = tuple(params["resolution"])
-        params["plot"] = False
-
-    with open(
-        repo_dir / "examples/default_imaging_params.json",
-        "r",
-    ) as f:
-        params_imaging = json.load(f)
-        params.update(params_imaging)
+    params = get_default_params
 
     smart_em.acquire_many_grids(
         coordinates=params["coordinates"], params=params, save_dir=tmp_path
@@ -141,3 +166,61 @@ def test_par_test():
 
     assert all([i + 1 == j for i, j in zip(locs, rescan_masks)])
     assert diff < total_time_serial
+
+
+def test_smart_em_par_acquire_many_grids(get_smartem_par, get_default_params, tmp_path):
+    smart_em = get_smartem_par
+    smart_em.initialize()
+
+    params = get_default_params
+
+    smart_em.acquire_many_grids(
+        coordinates=params["coordinates"], params=params, save_dir=tmp_path
+    )
+
+
+def test_smart_em_acquire_many_grids_time_comp(
+    get_smartem, get_smartem_par, get_default_params, tmp_path
+):
+    sleep_time = 0.1
+
+    smart_em = get_smartem
+    smart_em.initialize()
+    smart_em_par = get_smartem_par
+    smart_em_par.initialize()
+
+    params = get_default_params
+
+    # Don't acquire as many tiles as there will be sleeping involved
+    with open(
+        repo_dir / "examples/default_imaging_params_short.json",
+        "r",
+    ) as f:
+        params_imaging = json.load(f)
+        params.update(params_imaging)
+
+    params["sleep_time"] = sleep_time
+    smart_em.get_rescan_map.params["sleep_time"] = sleep_time
+    smart_em_par.get_rescan_map.params["sleep_time"] = sleep_time
+
+    tic = time.time()
+    smart_em.acquire_many_grids(
+        coordinates=params["coordinates"], params=params, save_dir=tmp_path
+    )
+    toc_serial = time.time()
+    smart_em_par.acquire_many_grids(
+        coordinates=params["coordinates"], params=params, save_dir=tmp_path
+    )
+    toc_par = time.time()
+    assert toc_par - toc_serial < 0.85 * (toc_serial - tic)
+
+    tic = time.time()
+    smart_em_par.acquire_many_grids(
+        coordinates=params["coordinates"], params=params, save_dir=tmp_path
+    )
+    toc_par = time.time()
+    smart_em.acquire_many_grids(
+        coordinates=params["coordinates"], params=params, save_dir=tmp_path
+    )
+    toc_serial = time.time()
+    assert toc_par - tic < 0.85 * (toc_serial - toc_par)
