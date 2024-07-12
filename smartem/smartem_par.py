@@ -8,6 +8,7 @@ from threading import Event, Thread
 import time
 
 from smartem import tools
+from smartem.smartem import show_smart
 
 fast_ims = []
 rescan_masks = []
@@ -63,7 +64,6 @@ def acquire_grid_fast(microscope, xyzrt, theta, nx, ny, dx, dy, params, fast_ems
             microscope.move(x=coordinate[0], y=coordinate[1], z=z, r=r, t=t)
             params = copy.deepcopy(params)
             params.update({"dwell_time": params["fast_dwt"]})
-            print(f"acquiring image: {ix*nx+iy}")
             fast_em = microscope.get_image(params=params)
             fast_ems.append(fast_em)
 
@@ -75,7 +75,6 @@ def compute_grid(get_rescan_map, nx, ny, fast_ems, rescan_maps, additionals):
     while counter < n_tiles:
         if len(fast_ems) > counter:
             fast_em = fast_ems[counter]
-            print(f"computing rescan map: {counter}")
             rescan_map, additional = get_rescan_map(fast_em)
             rescan_maps.append(rescan_map)
             additionals.append(additional)
@@ -255,8 +254,8 @@ class SmartEMPar:
             grid_results = self.acquire_grid(
                 xyzrt=xyzrt,
                 theta=theta,
-                nx=2,  # hard coded
-                ny=2,
+                nx=3,  # hard coded
+                ny=3,
                 dx=fov[0] * 0.8,
                 dy=fov[1] * 0.8,
                 params=params,
@@ -336,38 +335,3 @@ class SmartEMPar:
             + "\nand get_rescan_map:\n"
             + str(self.get_rescan_map)
         )
-
-
-def show_smart(fast_em, slow_em, rescan_map, fast_dwt, slow_dwt):
-    """
-    Make a figure to show the results of SmartEM.
-
-    Args:
-    fast_em: np.ndarray, fast electron microscope image
-    slow_em: np.ndarray, slow electron microscope image
-    rescan_map: np.ndarray, rescan map
-    fast_dwt: float, fast dwell time
-    slow_dwt: float, slow dwell time
-
-    Returns:
-    fig: plt.Figure, figure
-    """
-    fig = plt.figure(figsize=(20, 15))
-    plt.subplot(2, 3, 1)
-    plt.imshow(fast_em, interpolation="none", cmap="gray")
-    plt.title(f"fast_em, dwell_time = {fast_dwt*1e9:.0f} ns")
-    plt.subplot(2, 3, 2)
-    plt.imshow(rescan_map, interpolation="none", cmap="gray")
-    plt.title("rescan_map")
-    plt.subplot(2, 3, 3)
-    plt.imshow(slow_em, interpolation="none", cmap="gray")
-    plt.title(f"slow_em, dwell_time = {slow_dwt*1e9:.0f} ns")
-    plt.subplot(2, 3, 4)
-    merged_em = fast_em.copy()
-    merged_em[rescan_map] = slow_em[rescan_map]
-    plt.imshow(merged_em, interpolation="none", cmap="gray")
-    plt.title("merged_em")
-    plt.subplot(2, 3, 5)
-    plt.imshow(merged_em - fast_em, interpolation="none", cmap="gray")
-    plt.title(f"merged_em - fast_em")
-    return fig

@@ -175,8 +175,8 @@ class SmartEM:
             grid_results = self.acquire_grid(
                 xyzrt=xyzrt,
                 theta=theta,
-                nx=2,
-                ny=2,
+                nx=3,  # hardcoded
+                ny=3,
                 dx=fov[0] * 0.8,
                 dy=fov[1] * 0.8,
                 params=params,

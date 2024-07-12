@@ -66,8 +66,6 @@ class FakeRandomMicroscope(BaseMicroscope):
         pass
 
     def get_image(self, params):
-        if "sleep_time" in params.keys():
-            time.sleep(params["sleep_time"])
         W = params["W"] if "W" in params else 1024
         H = params["H"] if "H" in params else 1024
         dtype = params["dtype"] if "dtype" in params else np.uint16
@@ -75,9 +73,13 @@ class FakeRandomMicroscope(BaseMicroscope):
             np.iinfo(dtype).min, np.iinfo(dtype).max + 1, (W, H), dtype=dtype
         )
         if "rescan_map" in params.keys():
+            if "sleep" in params.keys():
+                time.sleep(params["slow_dwt"] * 5e6 * 0.05)
             image[~params["rescan_map"]] = np.iinfo(dtype).min
             return image
         else:
+            if "sleep" in params.keys():
+                time.sleep(params["fast_dwt"] * 5e6)
             return image
 
     def move(self, **kwargs):
