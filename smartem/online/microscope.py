@@ -295,7 +295,6 @@ class ThermoFisherVerios(BaseMicroscope):
         resolution = params["resolution"]
         pixel_size = params["pixel_size"]
         fov = (resolution[0] * pixel_size, resolution[1] * pixel_size)
-        print(f"res: {resolution}, pxl size: {pixel_size}, fov: {fov}")
 
         self.microscope.beams.electron_beam.scanning.resolution.value = (
             "%dx%d" % resolution
@@ -313,6 +312,9 @@ class ThermoFisherVerios(BaseMicroscope):
 
         bit_depth = 16
         if "rescan_map" in params.keys():
+            print(f"res: {resolution}, pxl size: {pixel_size}, fov: {fov}")
+            print(f"microscope res: {self.microscope.beams.electron_beam.scanning.resolution.value}")
+
             rescan_map = params["rescan_map"]
 
             rescan_map = (rescan_map.astype(np.uint8) * 255)[:, :, None].repeat(
@@ -328,13 +330,14 @@ class ThermoFisherVerios(BaseMicroscope):
             pattern.dwell_time = params["dwell_time"]
             pattern.pass_count = 1
             pattern.scan_type = self.sdb_enums.PatternScanType.RASTER
+            # check if the microscope's current pattern is equal to the bitmap
             self.microscope.beams.electron_beam.unblank()
             self.microscope.patterning.run()
 
             image = (
                 self.microscope.imaging.get_image().data.copy()
             )  # Ask thermofisher if we can skip copy
-            print(f"Acquired image shape: {image.shape}")
+            print(f"Acquired rescan image: {image.shape}")
             assert bit_depth == 16, "print only uint16 implemented"
             self.microscope.patterning.clear_patterns()
         else:
