@@ -312,15 +312,15 @@ class ThermoFisherVerios(BaseMicroscope):
 
         bit_depth = 16
         if "rescan_map" in params.keys():
-            print(f"res: {resolution}, pxl size: {pixel_size}, fov: {fov}")
-            print(f"microscope res: {self.microscope.beams.electron_beam.scanning.resolution.value}")
+            print(f"[microscope.py - input params] res: {resolution}, pxl size: {pixel_size}, fov: {fov}")
+            print(f"[microscope.py] self.microscope.beams.electron_beam.scanning.resolution.value: {self.microscope.beams.electron_beam.scanning.resolution.value}")
 
             rescan_map = params["rescan_map"]
 
             rescan_map = (rescan_map.astype(np.uint8) * 255)[:, :, None].repeat(
                 3, axis=2
             )
-            print(f"micro rescan map shape: {rescan_map.shape} w/ rescan ratio {np.sum(rescan_map/255)/rescan_map.size}")
+            print(f"[microscope.py] rescan_map shape: {rescan_map.shape} w/ rescan ratio {np.sum(rescan_map/255)/rescan_map.size}")
             self.microscope.patterning.clear_patterns()
             tools.write_im(self.params["tempfile"], rescan_map)
             bpd = self.BitmapPatternDefinition.load(self.params["tempfile"])
@@ -337,7 +337,7 @@ class ThermoFisherVerios(BaseMicroscope):
             image = (
                 self.microscope.imaging.get_image().data.copy()
             )  # Ask thermofisher if we can skip copy
-            print(f"Acquired rescan image: {image.shape}")
+            print(f"[microscope.py] self.microscope.imaging.get_image().data: {image.shape}")
             assert bit_depth == 16, "print only uint16 implemented"
             self.microscope.patterning.clear_patterns()
         else:
