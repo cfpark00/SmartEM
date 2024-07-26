@@ -30,6 +30,7 @@ def VI(
     Calculates the Variation of Information between two clusterings.
     This function is used for running the examples in ./experiments and ./smartem/segmentation directory
     if you can't install pyvoi<https://pypi.org/project/python-voi/> in your environment.
+    This is slightly different than the implementation of VI at ./smartem/offline/tools.py
 
 
     """

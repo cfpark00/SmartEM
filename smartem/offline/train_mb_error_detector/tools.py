@@ -368,8 +368,8 @@ def VI(fm_labels, sm_labels):
     - mergers (np.ndarray): A sorted array of merge errors for each unique label in `fm_labels`, along with the corresponding labels.
 
     Notes:
-    This VI is a reimplementation of the VI from pyvoi.py and python-voi.
-    But it is slightly different and is only used for the functions in this script.
+    This VI is a reimplementation of the VI from python-voi.
+    But it is slightly different from ./smartem/offline/pyvoi.py and is only used for the functions in this script.
     Don't use this to run the scripts in ./experiments and ./smartem/offline/ and ./smartem/segmentation folders.
     """
 
