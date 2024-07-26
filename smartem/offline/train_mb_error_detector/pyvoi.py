@@ -12,8 +12,6 @@ def VI(
     return_split_merge: bool = False,
 ):
     """
-    Calculates the Variation of Information between two clusterings.
-
     Arguments:
     labels1: flat int32 array of labels for the first clustering
     labels2: flat int32 array of labels for the second clustering
@@ -27,6 +25,13 @@ def VI(
     vi_merge: merge term of variation of information
     splitters(optional): labels of labels2 which are split by labels1. splitters[i,0] is the contribution of the i-th splitter to the VI and splitters[i,1] is the corresponding label of the splitter
     mergers(optional): labels of labels1 which are merging labels from labels2. mergers[i,0] is the contribution of the i-th merger to the VI and mergers[i,1] is the corresponding label of the merger
+
+    Notes:
+    Calculates the Variation of Information between two clusterings.
+    This function is used for running the examples in ./experiments and ./smartem/segmentation directory
+    if you can't install pyvoi<https://pypi.org/project/python-voi/> in your environment.
+
+
     """
     if labels1.ndim > 1 or labels2.ndim > 1:
         warnings.warn(
