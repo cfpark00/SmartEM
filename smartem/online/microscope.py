@@ -320,6 +320,31 @@ class ThermoFisherVerios(BaseMicroscope):
             rescan_map = (rescan_map.astype(np.uint8) * 255)[:, :, None].repeat(
                 3, axis=2
             )
+
+
+            # set resolution of server debugging
+            from autoscript_sdb_microscope_client.structures import AdornedImage
+            image = (
+                self.microscope.imaging.get_image().data.copy()
+            )
+            print(f"[microscope.py]: image shape before start: {image.shape}")
+            # start/stop microscope to update resolution?
+            # self.microscope.beams.electron_beam.scanning.resolution.value = "2048x1768"
+            # self.microscope.imaging.start_acquisition()
+            # time.sleep(1)
+            # self.microscope.imaging.stop_acquisition()
+            print(f"saving tiff: {rescan_map.shape} {rescan_map.dtype}")
+            tiff_path = "D:\\Users\\Lab\\Documents\\SmartEM\\athey\\rescam_map.tiff"
+            tools.write_im(tiff_path, rescan_map[:, :, 0])
+            loaded_tiff = AdornedImage.load(tiff_path)
+            self.microscope.imaging.set_image(loaded_tiff)
+
+            image = (
+                self.microscope.imaging.get_image().data.copy()
+            )
+            print(f"[microscope.py]: image shape after start: {image.shape}")
+            # end
+
             print(f"[microscope.py] rescan_map shape: {rescan_map.shape} w/ rescan ratio {np.sum(rescan_map/255)/rescan_map.size}")
             self.microscope.patterning.clear_patterns()
             tools.write_im(self.params["tempfile"], rescan_map)
