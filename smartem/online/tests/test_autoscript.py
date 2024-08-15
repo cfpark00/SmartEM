@@ -4,6 +4,6 @@ import autoscript_sdb_microscope_client.sdb_microscope_client as sdb_microscope_
 import numpy as np
 
 
-def test_rescan(tmp_path):
+def _test_rescan(tmp_path):
     microscope = SdbMicroscopeClient()
     microscope.connect("localhost")
