@@ -5,6 +5,7 @@ import copy
 import numpy as np
 import os
 import warnings
+from pathlib import Path
 
 from smartem import tools
 
@@ -312,40 +313,24 @@ class ThermoFisherVerios(BaseMicroscope):
 
         bit_depth = 16
         if "rescan_map" in params.keys():
-            print(f"[microscope.py - input params] res: {resolution}, pxl size: {pixel_size}, fov: {fov}")
-            print(f"[microscope.py] self.microscope.beams.electron_beam.scanning.resolution.value: {self.microscope.beams.electron_beam.scanning.resolution.value}")
-
             rescan_map = params["rescan_map"]
 
             rescan_map = (rescan_map.astype(np.uint8) * 255)[:, :, None].repeat(
                 3, axis=2
             )
 
-
-            # set resolution of server debugging
-            from autoscript_sdb_microscope_client.structures import AdornedImage
-            image = (
-                self.microscope.imaging.get_image().data.copy()
-            )
-            print(f"[microscope.py]: image shape before start: {image.shape}")
-            # start/stop microscope to update resolution?
-            # self.microscope.beams.electron_beam.scanning.resolution.value = "2048x1768"
-            # self.microscope.imaging.start_acquisition()
-            # time.sleep(1)
-            # self.microscope.imaging.stop_acquisition()
-            print(f"saving tiff: {rescan_map.shape} {rescan_map.dtype}")
-            tiff_path = "D:\\Users\\Lab\\Documents\\SmartEM\\athey\\rescam_map.tiff"
-            tools.write_im(tiff_path, rescan_map[:, :, 0])
-            loaded_tiff = AdornedImage.load(tiff_path)
-            self.microscope.imaging.set_image(loaded_tiff)
+            # Simulator environment only serves images of ~1kx1k, so we will feed it an image of our desired shape
+            if self.params["ip"] == "localhost":
+                from autoscript_sdb_microscope_client.structures import AdornedImage
+                tiff_path = Path(self.params['tempfile']).parent.absolute() / "tempfile.tiff"
+                tools.write_im(str(tiff_path), rescan_map[:, :, 0])
+                loaded_tiff = AdornedImage.load(tiff_path)
+                self.microscope.imaging.set_image(loaded_tiff)
 
             image = (
                 self.microscope.imaging.get_image().data.copy()
             )
-            print(f"[microscope.py]: image shape after start: {image.shape}")
-            # end
 
-            print(f"[microscope.py] rescan_map shape: {rescan_map.shape} w/ rescan ratio {np.sum(rescan_map/255)/rescan_map.size}")
             self.microscope.patterning.clear_patterns()
             tools.write_im(self.params["tempfile"], rescan_map)
             bpd = self.BitmapPatternDefinition.load(self.params["tempfile"])
@@ -362,7 +347,6 @@ class ThermoFisherVerios(BaseMicroscope):
             image = (
                 self.microscope.imaging.get_image().data.copy()
             )  # Ask thermofisher if we can skip copy
-            print(f"[microscope.py] self.microscope.imaging.get_image().data: {image.shape}")
             assert bit_depth == 16, "print only uint16 implemented"
             self.microscope.patterning.clear_patterns()
         else:

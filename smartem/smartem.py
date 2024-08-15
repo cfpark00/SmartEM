@@ -3,6 +3,7 @@ import numpy as np
 import os
 import copy
 import scipy.io as sio
+from tqdm import tqdm
 
 from smartem import tools
 
@@ -60,8 +61,6 @@ class SmartEM:
         params.update({"dwell_time": params["slow_dwt"], "rescan_map": rescan_map})
         rescan_em = self.microscope.get_image(params=params)
 
-        print(f"[smartem.py]: fast_em: {fast_em.shape} rescan_map: {rescan_map.shape}, rescan_em: {rescan_em.shape}")
-
         if "plot" in params and params["plot"]:
             fig = show_smart(
                 fast_em,
@@ -71,8 +70,6 @@ class SmartEM:
                 slow_dwt=params["slow_dwt"],
             )
             additional["fig"] = fig
-        if "verbose" in params and params["verbose"] > 0:
-            print(f"Acquired fast_em, rescan_em, rescan_map")
         return fast_em, rescan_em, rescan_map, additional
 
     def acquire_to(self, save_dir, params):
@@ -158,7 +155,7 @@ class SmartEM:
         fast_mb_fol = os.path.join(save_dir, "fast_mb")
         os.makedirs(fast_mb_fol, exist_ok=True)
 
-        for i in range(n_targets):
+        for i in tqdm(range(n_targets), desc="Acquiring targets...", disable= not params["verbose"]):
             fast_fol_ = os.path.join(fast_fol, "location_" + str(i).zfill(5))
             os.makedirs(fast_fol_, exist_ok=True)
             rescan_fol_ = os.path.join(rescan_fol, "location_" + str(i).zfill(5))

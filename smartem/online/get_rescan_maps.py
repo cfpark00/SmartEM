@@ -77,7 +77,8 @@ class GetRescanMapTest(GetRescanMap):
         if self.params["type"] == "half":
             mask = np.zeros_like(fast_em, dtype=bool)
             mask[: mask.shape[0] // 2] = 1
-            return mask, {}
+            additional = {"fast_mb": np.zeros_like(mask, dtype=np.uint8)}
+            return mask, additional
         elif self.params["type"] == "random":
             mask = np.zeros_like(fast_em, dtype=bool)
             mask = mask.flatten()
