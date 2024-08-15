@@ -78,8 +78,8 @@ class FakeRandomMicroscope(BaseMicroscope):
         else:
             return image
 
-    def move(self, params):
-        raise NotImplementedError("No move implemented for this microscope")
+    def move(self, **kwargs):
+        pass
 
     def initialize(self):
         pass
