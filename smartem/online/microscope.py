@@ -341,7 +341,6 @@ class ThermoFisherVerios(BaseMicroscope):
             pattern.dwell_time = params["dwell_time"]
             pattern.pass_count = 1
             pattern.scan_type = self.sdb_enums.PatternScanType.RASTER
-            # check if the microscope's current pattern is equal to the bitmap
             self.microscope.beams.electron_beam.unblank()
             self.microscope.patterning.run()
 
