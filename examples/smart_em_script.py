@@ -7,6 +7,7 @@
 import os
 import numpy as np
 import json
+from pathlib import Path
 
 # add the base SmartEM path to the python path
 from smartem.smartem import SmartEM
@@ -28,8 +29,8 @@ def get_microscope(microscope_type):
     """
     if microscope_type == "verios":
         # This is the microscope used for the SmartEM paper
-        params = {"ip": "192.168.0.1"} # online mode (microscope active)
-        params = {"ip": "localhost"} # offline mode
+        params = {"ip": "192.168.0.1"}  # online mode (microscope active)
+        params = {"ip": "localhost"}  # offline mode
         my_microscope = microscope.ThermoFisherVerios(params=params)
     elif microscope_type == "fake":
         # This is a fake microscope that generates random images
@@ -147,9 +148,18 @@ if __name__ == "__main__":
     print("Acquiring...")
     # Set some parameters
     if microscope_type == "verios":
-        my_smart_em.acquire_many_grids_from_mat(
-            target_mat=target_mat, save_dir=save_dir, params=params
-        )
+        target_mat_type = Path(target_mat).suffix
+        if target_mat_type == ".mat":
+            my_smart_em.acquire_many_grids_from_mat(
+                target_mat=target_mat, save_dir=save_dir, params=params
+            )
+        elif target_mat_type == ".json":
+            with open(target_mat, "r") as f:
+                params_imaging = json.load(f)
+            params.update(params_imaging)
+            my_smart_em.acquire_many_grids(
+                coordinates=params["coordinates"], params=params, save_dir=save_dir
+            )
     elif microscope_type == "fake":
         my_smart_em.acquire_to(save_dir=save_dir, params=params)
     elif microscope_type == "fakedata":

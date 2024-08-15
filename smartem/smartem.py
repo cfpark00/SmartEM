@@ -155,7 +155,9 @@ class SmartEM:
         fast_mb_fol = os.path.join(save_dir, "fast_mb")
         os.makedirs(fast_mb_fol, exist_ok=True)
 
-        for i in tqdm(range(n_targets), desc="Acquiring targets...", disable= not params["verbose"]):
+        for i in tqdm(
+            range(n_targets), desc="Acquiring targets...", disable=not params["verbose"]
+        ):
             fast_fol_ = os.path.join(fast_fol, "location_" + str(i).zfill(5))
             os.makedirs(fast_fol_, exist_ok=True)
             rescan_fol_ = os.path.join(rescan_fol, "location_" + str(i).zfill(5))

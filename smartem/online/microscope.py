@@ -322,14 +322,15 @@ class ThermoFisherVerios(BaseMicroscope):
             # Simulator environment only serves images of ~1kx1k, so we will feed it an image of our desired shape
             if self.params["ip"] == "localhost":
                 from autoscript_sdb_microscope_client.structures import AdornedImage
-                tiff_path = Path(self.params['tempfile']).parent.absolute() / "tempfile.tiff"
+
+                tiff_path = (
+                    Path(self.params["tempfile"]).parent.absolute() / "tempfile.tiff"
+                )
                 tools.write_im(str(tiff_path), rescan_map[:, :, 0])
                 loaded_tiff = AdornedImage.load(tiff_path)
                 self.microscope.imaging.set_image(loaded_tiff)
 
-            image = (
-                self.microscope.imaging.get_image().data.copy()
-            )
+            image = self.microscope.imaging.get_image().data.copy()
 
             self.microscope.patterning.clear_patterns()
             tools.write_im(self.params["tempfile"], rescan_map)
