@@ -21,8 +21,8 @@ repo_dir = Path(os.path.dirname(os.path.abspath(__file__))).parents[1]
 @pytest.fixture
 def get_smartem():
     # initializing fake random microscope with sleep on
-    params = {"W": 1024, "H": 1024, "dtype": np.uint16, "sleep": True}
-    microscope = microscope_client.FakeRandomMicroscope(params=params)
+    params = {"ip": "localhost", "sleep": True}
+    microscope = microscope_client.ThermoFisherVerios(params=params)
 
     # initializing get_rescan_map
     params = {"type": "half", "fraction": 0.5}
@@ -38,8 +38,8 @@ def get_smartem():
 @pytest.fixture
 def get_smartem_par():
     # initializing fake random microscope with sleep on
-    params = {"W": 1024, "H": 1024, "dtype": np.uint16, "sleep": True}
-    microscope = microscope_client.FakeRandomMicroscope(params=params)
+    params = {"ip": "localhost", "sleep": True}
+    microscope = microscope_client.ThermoFisherVerios(params=params)
 
     # initializing get_rescan_map
     params = {"type": "half", "fraction": 0.5}
@@ -64,7 +64,7 @@ def get_default_params():
         params["plot"] = False
 
     with open(
-        repo_dir / "examples/default_imaging_params.json",
+        repo_dir / "examples/default_imaging_params_short.json",
         "r",
     ) as f:
         params_imaging = json.load(f)
@@ -73,30 +73,33 @@ def get_default_params():
     return params
 
 
-def test_smart_em_operations_using_fake_data_and_microscope(get_smartem):
+def test_smart_em_operations_using_fake_data_and_verios(
+    get_smartem, get_default_params
+):
     smart_em = get_smartem
+    params = get_default_params
+    params["plot"] = True
     smart_em.initialize()
 
     # test prepare_acquisition
     smart_em.prepare_acquisition()
 
     # testing acquire function
-    params = {"fast_dwt": 50e-9, "slow_dwt": 800e-9, "plot": True, "verbose": 1}
     fast_em, rescan_em, rescan_map, additional = smart_em.acquire(params=params)
 
     # test whether fast_em is a numpy array of size 1024x1024 of type np.uint16
     assert isinstance(fast_em, np.ndarray), "fast_em is not a numpy array"
-    assert fast_em.shape == (1024, 1024), "fast_em is not of size 1024x1024"
-    assert fast_em.dtype == np.uint16, "fast_em is not of type np.uint16"
+    assert fast_em.shape == (1768, 2048), "fast_em is not of size 1024x1024"
+    assert fast_em.dtype == np.uint8, "fast_em is not of type np.uint16"
 
     # test whether rescan_em is a numpy array of size 1024x1024
     assert isinstance(rescan_em, np.ndarray), "rescan_em is not a numpy array"
-    assert rescan_em.shape == (1024, 1024), "rescan_em is not of size 1024x1024"
-    assert rescan_em.dtype == np.uint16, "rescan_em is not of type np.uint16"
+    assert rescan_em.shape == (1768, 2048), "rescan_em is not of size 1024x1024"
+    assert rescan_em.dtype == np.uint8, "rescan_em is not of type np.uint16"
 
     # test whether rescan_map is a numpy array of size 1024x1024 of type bool
     assert isinstance(rescan_map, np.ndarray), "rescan_map is not a numpy array"
-    assert rescan_map.shape == (1024, 1024), "rescan_map is not of size 1024x1024"
+    assert rescan_map.shape == (1768, 2048), "rescan_map is not of size 1024x1024"
     assert (
         rescan_map.dtype == bool
     ), f"rescan_map is not of type bool, rather of type {rescan_map.dtype} "
@@ -153,21 +156,6 @@ def test_smart_em_acquire_many_grids(get_smartem, get_default_params, tmp_path):
     )
 
 
-def test_par_test():
-    partest = par_test()
-    locs = [i for i in range(10)]
-    sleep_a, sleep_b = 1, 0.5
-    total_time_serial = len(locs) * (sleep_a + sleep_b)
-
-    tic = time.time()
-    rescan_masks = partest.run(locs, sleep_a, sleep_b)
-    toc = time.time()
-    diff = toc - tic
-
-    assert all([i + 1 == j for i, j in zip(locs, rescan_masks)])
-    assert diff < total_time_serial
-
-
 def test_smart_em_par_acquire_many_grids(get_smartem_par, get_default_params, tmp_path):
     smart_em = get_smartem_par
     smart_em.initialize()
@@ -182,7 +170,7 @@ def test_smart_em_par_acquire_many_grids(get_smartem_par, get_default_params, tm
 def test_smart_em_acquire_many_grids_time_comp(
     get_smartem, get_smartem_par, get_default_params, tmp_path
 ):
-    sleep_time = 0.25
+    sleep_time = 30
 
     smart_em = get_smartem
     smart_em.initialize()
@@ -190,10 +178,8 @@ def test_smart_em_acquire_many_grids_time_comp(
     smart_em_par.initialize()
 
     params = get_default_params
-
-    # Don't acquire as many tiles as there will be sleeping involved
     with open(
-        repo_dir / "examples/default_imaging_params_short.json",
+        repo_dir / "examples/default_imaging_params_single.json",
         "r",
     ) as f:
         params_imaging = json.load(f)

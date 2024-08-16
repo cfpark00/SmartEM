@@ -10,6 +10,7 @@ from pathlib import Path
 from smartem import tools
 
 import copy
+import time
 
 
 class BaseMicroscope(metaclass=abc.ABCMeta):
@@ -73,9 +74,13 @@ class FakeRandomMicroscope(BaseMicroscope):
             np.iinfo(dtype).min, np.iinfo(dtype).max + 1, (W, H), dtype=dtype
         )
         if "rescan_map" in params.keys():
+            if "sleep" in self.params.keys():
+                time.sleep(params["slow_dwt"] * 1e7 * 0.05)
             image[~params["rescan_map"]] = np.iinfo(dtype).min
             return image
         else:
+            if "sleep" in self.params.keys():
+                time.sleep(params["fast_dwt"] * 1e7)
             return image
 
     def move(self, **kwargs):
@@ -350,6 +355,8 @@ class ThermoFisherVerios(BaseMicroscope):
             assert bit_depth == 16, "print only uint16 implemented"
             self.microscope.patterning.clear_patterns()
         else:
+            if "sleep" in self.params.keys():
+                time.sleep(30)
             settings = self.GrabFrameSettings(
                 resolution="%dx%d" % (resolution[0], resolution[1]),
                 dwell_time=params["dwell_time"],
