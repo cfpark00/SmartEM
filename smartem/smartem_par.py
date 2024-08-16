@@ -254,8 +254,8 @@ class SmartEMPar:
             grid_results = self.acquire_grid(
                 xyzrt=xyzrt,
                 theta=theta,
-                nx=3,  # hard coded
-                ny=3,
+                nx=2,  # hard coded
+                ny=2,
                 dx=fov[0] * 0.8,
                 dy=fov[1] * 0.8,
                 params=params,

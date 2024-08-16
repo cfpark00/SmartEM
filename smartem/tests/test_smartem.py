@@ -20,8 +20,8 @@ repo_dir = Path(os.path.dirname(os.path.abspath(__file__))).parents[1]
 
 @pytest.fixture
 def get_smartem():
-    # initializing fake random microscope
-    params = {"W": 1024, "H": 1024, "dtype": np.uint16}
+    # initializing fake random microscope with sleep on
+    params = {"W": 1024, "H": 1024, "dtype": np.uint16, "sleep": True}
     microscope = microscope_client.FakeRandomMicroscope(params=params)
 
     # initializing get_rescan_map
@@ -37,8 +37,8 @@ def get_smartem():
 
 @pytest.fixture
 def get_smartem_par():
-    # initializing fake random microscope
-    params = {"W": 1024, "H": 1024, "dtype": np.uint16}
+    # initializing fake random microscope with sleep on
+    params = {"W": 1024, "H": 1024, "dtype": np.uint16, "sleep": True}
     microscope = microscope_client.FakeRandomMicroscope(params=params)
 
     # initializing get_rescan_map
@@ -182,7 +182,7 @@ def test_smart_em_par_acquire_many_grids(get_smartem_par, get_default_params, tm
 def test_smart_em_acquire_many_grids_time_comp(
     get_smartem, get_smartem_par, get_default_params, tmp_path
 ):
-    sleep_time = 0.1
+    sleep_time = 0.25
 
     smart_em = get_smartem
     smart_em.initialize()
@@ -203,6 +203,7 @@ def test_smart_em_acquire_many_grids_time_comp(
     smart_em.get_rescan_map.params["sleep_time"] = sleep_time
     smart_em_par.get_rescan_map.params["sleep_time"] = sleep_time
 
+    # serial first
     tic = time.time()
     smart_em.acquire_many_grids(
         coordinates=params["coordinates"], params=params, save_dir=tmp_path
@@ -214,6 +215,7 @@ def test_smart_em_acquire_many_grids_time_comp(
     toc_par = time.time()
     assert toc_par - toc_serial < 0.85 * (toc_serial - tic)
 
+    # parallel first
     tic = time.time()
     smart_em_par.acquire_many_grids(
         coordinates=params["coordinates"], params=params, save_dir=tmp_path

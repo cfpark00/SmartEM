@@ -3,6 +3,7 @@ import numpy as np
 import os
 import copy
 import scipy.io as sio
+import time
 
 from smartem import tools
 
@@ -175,8 +176,8 @@ class SmartEM:
             grid_results = self.acquire_grid(
                 xyzrt=xyzrt,
                 theta=theta,
-                nx=3,  # hardcoded
-                ny=3,
+                nx=2,  # hardcoded
+                ny=2,
                 dx=fov[0] * 0.8,
                 dy=fov[1] * 0.8,
                 params=params,
