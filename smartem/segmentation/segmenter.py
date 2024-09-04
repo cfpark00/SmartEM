@@ -16,7 +16,6 @@ from smartem.segmentation.utils import watershed
 
 
 class Segmenter:
-
     def __init__(self, model_path=None, segmenter_function=None, device="auto"):
         self.model_path = model_path
         self.model = None
