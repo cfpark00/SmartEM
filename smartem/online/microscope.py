@@ -9,6 +9,7 @@ import warnings
 from smartem import tools
 
 import copy
+import time
 
 
 class BaseMicroscope(metaclass=abc.ABCMeta):
@@ -72,9 +73,17 @@ class FakeRandomMicroscope(BaseMicroscope):
             np.iinfo(dtype).min, np.iinfo(dtype).max + 1, (W, H), dtype=dtype
         )
         if "rescan_map" in params.keys():
+            if "sleep" in self.params.keys():
+                # simulate slow scan, though 1e7 factor is somewhat arbitrary
+                time.sleep(
+                    params["slow_dwt"] * 1e7 * 0.05
+                )  # 0.05 represents 5% of pixels
             image[~params["rescan_map"]] = np.iinfo(dtype).min
             return image
         else:
+            if "sleep" in self.params.keys():
+                # simulate fast scan, though 1e7 factor is somewhat arbitrary
+                time.sleep(params["fast_dwt"] * 1e7)
             return image
 
     def move(self, **kwargs):
