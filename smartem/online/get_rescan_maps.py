@@ -76,6 +76,7 @@ class GetRescanMapTest(GetRescanMap):
 
     def get_rescan_map(self, fast_em):
         if "sleep_time" in self.params.keys():
+            # simulate the time it takes to generate a rescan map
             time.sleep(self.params["sleep_time"])
         if self.params["type"] == "half":
             mask = np.zeros_like(fast_em, dtype=bool)
