@@ -65,19 +65,19 @@ def test_smart_em_operations_using_fake_data_and_verios(
     # testing acquire function
     fast_em, rescan_em, rescan_map, additional = smart_em.acquire(params=params)
 
-    # test whether fast_em is a numpy array of size 1024x1024 of type np.uint16
+    # test whether fast_em is a numpy array of size 1768x2048 of type np.uint16
     assert isinstance(fast_em, np.ndarray), "fast_em is not a numpy array"
-    assert fast_em.shape == (1768, 2048), "fast_em is not of size 1024x1024"
+    assert fast_em.shape == (1768, 2048), "fast_em is not of size 1768x2048"
     assert fast_em.dtype == np.uint8, "fast_em is not of type np.uint16"
 
-    # test whether rescan_em is a numpy array of size 1024x1024
+    # test whether rescan_em is a numpy array of size 1768x2048
     assert isinstance(rescan_em, np.ndarray), "rescan_em is not a numpy array"
-    assert rescan_em.shape == (1768, 2048), "rescan_em is not of size 1024x1024"
+    assert rescan_em.shape == (1768, 2048), "rescan_em is not of size 1768x2048"
     assert rescan_em.dtype == np.uint8, "rescan_em is not of type np.uint16"
 
-    # test whether rescan_map is a numpy array of size 1024x1024 of type bool
+    # test whether rescan_map is a numpy array of size 1768x2048 of type bool
     assert isinstance(rescan_map, np.ndarray), "rescan_map is not a numpy array"
-    assert rescan_map.shape == (1768, 2048), "rescan_map is not of size 1024x1024"
+    assert rescan_map.shape == (1768, 2048), "rescan_map is not of size 1768x2048"
     assert (
         rescan_map.dtype == bool
     ), f"rescan_map is not of type bool, rather of type {rescan_map.dtype} "
