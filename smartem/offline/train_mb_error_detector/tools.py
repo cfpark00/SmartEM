@@ -369,7 +369,7 @@ def VI(fm_labels, sm_labels):
 
     Notes:
     This VI is a reimplementation of the VI from python-voi.
-    But it is slightly different from ./smartem/offline/pyvoi.py and is only used for the functions in this script.
+    But it is slightly different from ./smartem/offline/train_mb_error_detector/pyvoi.py and is only used for the functions in this script.
     Don't use this to run the scripts in ./experiments and ./smartem/offline/ and ./smartem/segmentation folders.
     """
 
