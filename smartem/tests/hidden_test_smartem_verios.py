@@ -12,8 +12,7 @@ from smartem.smartem import SmartEM
 from smartem.smartem_par import SmartEMPar
 from smartem.online import microscope as microscope_client
 from smartem.online import get_rescan_maps
-
-from smartem.smartem_par import par_test
+from test_smartem import get_default_params
 
 repo_dir = Path(os.path.dirname(os.path.abspath(__file__))).parents[1]
 
@@ -50,27 +49,6 @@ def get_smartem_par():
     assert smart_em.get_rescan_map == get_rescan_map
 
     yield smart_em
-
-
-@pytest.fixture
-def get_default_params():
-    with open(
-        repo_dir / "examples/default_smartem_params.json",
-        "r",
-    ) as f:
-        params = json.load(f)
-        if "resolution" in params:
-            params["resolution"] = tuple(params["resolution"])
-        params["plot"] = False
-
-    with open(
-        repo_dir / "examples/default_imaging_params_short.json",
-        "r",
-    ) as f:
-        params_imaging = json.load(f)
-        params.update(params_imaging)
-
-    return params
 
 
 def test_smart_em_operations_using_fake_data_and_verios(
