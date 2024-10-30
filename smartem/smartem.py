@@ -3,6 +3,8 @@ import numpy as np
 import os
 import copy
 import scipy.io as sio
+from tqdm import tqdm
+import time
 
 from smartem import tools
 
@@ -69,8 +71,6 @@ class SmartEM:
                 slow_dwt=params["slow_dwt"],
             )
             additional["fig"] = fig
-        if "verbose" in params and params["verbose"] > 0:
-            print(f"Acquired fast_em, rescan_em, rescan_map")
         return fast_em, rescan_em, rescan_map, additional
 
     def acquire_to(self, save_dir, params):
@@ -156,7 +156,9 @@ class SmartEM:
         fast_mb_fol = os.path.join(save_dir, "fast_mb")
         os.makedirs(fast_mb_fol, exist_ok=True)
 
-        for i in range(n_targets):
+        for i in tqdm(
+            range(n_targets), desc="Acquiring targets...", disable=not params["verbose"]
+        ):
             fast_fol_ = os.path.join(fast_fol, "location_" + str(i).zfill(5))
             os.makedirs(fast_fol_, exist_ok=True)
             rescan_fol_ = os.path.join(rescan_fol, "location_" + str(i).zfill(5))
@@ -175,7 +177,7 @@ class SmartEM:
             grid_results = self.acquire_grid(
                 xyzrt=xyzrt,
                 theta=theta,
-                nx=2,
+                nx=2,  # hardcoded
                 ny=2,
                 dx=fov[0] * 0.8,
                 dy=fov[1] * 0.8,

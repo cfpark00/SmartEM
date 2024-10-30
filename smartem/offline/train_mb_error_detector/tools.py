@@ -348,6 +348,31 @@ def get_big_cells(m_prob, max_size=200000, use_matlab=False):
 
 
 def VI(fm_labels, sm_labels):
+    """
+
+    Calculate the Variation of Information (VI) between two sets of labels, providing detailed information on split and merge errors.
+
+    This function computes the VI metric for comparing two segmentations: fm_labels and sm_labels.
+
+    Parameters:
+    - fm_labels (np.ndarray): An array of labels representing the first segmentation (e.g., ground truth).
+    - sm_labels (np.ndarray): An array of labels representing the second segmentation (e.g., predicted).
+
+    The function first asserts that both input arrays are of equal length. It then computes the mutual information and the individual entropies of both label sets to calculate the VI.
+
+    It returns several metrics:
+    - vi (float): The total variation of information, which is the sum of `vi_split` and `vi_merge`.
+    - vi_split (float): The VI component due to splitting errors (over-segmentation).
+    - vi_merge (float): The VI component due to merging errors (under-segmentation).
+    - splitters (np.ndarray): A sorted array of split errors for each unique label in `sm_labels`, along with the corresponding labels.
+    - mergers (np.ndarray): A sorted array of merge errors for each unique label in `fm_labels`, along with the corresponding labels.
+
+    Notes:
+    This VI is a reimplementation of the VI from python-voi.
+    But it is slightly different from ./smartem/offline/train_mb_error_detector/pyvoi.py and is only used for the functions in this script.
+    Don't use this to run the scripts in ./experiments and ./smartem/offline/ and ./smartem/segmentation folders.
+    """
+
     assert len(sm_labels) == len(fm_labels)
     size = len(sm_labels)
 

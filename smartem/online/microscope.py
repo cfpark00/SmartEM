@@ -5,10 +5,12 @@ import copy
 import numpy as np
 import os
 import warnings
+from pathlib import Path
 
 from smartem import tools
 
 import copy
+import time
 
 
 class BaseMicroscope(metaclass=abc.ABCMeta):
@@ -72,9 +74,17 @@ class FakeRandomMicroscope(BaseMicroscope):
             np.iinfo(dtype).min, np.iinfo(dtype).max + 1, (W, H), dtype=dtype
         )
         if "rescan_map" in params.keys():
+            if "sleep" in self.params.keys():
+                # simulate slow scan, though 1e7 factor is somewhat arbitrary
+                time.sleep(
+                    params["slow_dwt"] * 1e7 * 0.05
+                )  # 0.05 represents 5% of pixels
             image[~params["rescan_map"]] = np.iinfo(dtype).min
             return image
         else:
+            if "sleep" in self.params.keys():
+                # simulate fast scan, though 1e7 factor is somewhat arbitrary
+                time.sleep(params["fast_dwt"] * 1e7)
             return image
 
     def move(self, **kwargs):
@@ -317,6 +327,20 @@ class ThermoFisherVerios(BaseMicroscope):
             rescan_map = (rescan_map.astype(np.uint8) * 255)[:, :, None].repeat(
                 3, axis=2
             )
+
+            # Simulator environment only serves images of ~1kx1k, so we will feed it an image of our desired shape
+            if self.params["ip"] == "localhost":
+                from autoscript_sdb_microscope_client.structures import AdornedImage
+
+                tiff_path = (
+                    Path(self.params["tempfile"]).parent.absolute() / "tempfile.tiff"
+                )
+                tools.write_im(str(tiff_path), rescan_map[:, :, 0])
+                loaded_tiff = AdornedImage.load(tiff_path)
+                self.microscope.imaging.set_image(loaded_tiff)
+
+            image = self.microscope.imaging.get_image().data.copy()
+
             self.microscope.patterning.clear_patterns()
             tools.write_im(self.params["tempfile"], rescan_map)
             bpd = self.BitmapPatternDefinition.load(self.params["tempfile"])
@@ -335,6 +359,8 @@ class ThermoFisherVerios(BaseMicroscope):
             assert bit_depth == 16, "print only uint16 implemented"
             self.microscope.patterning.clear_patterns()
         else:
+            if "sleep" in self.params.keys():
+                time.sleep(30)
             settings = self.GrabFrameSettings(
                 resolution="%dx%d" % (resolution[0], resolution[1]),
                 dwell_time=params["dwell_time"],

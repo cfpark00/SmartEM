@@ -16,7 +16,6 @@ import matplotlib.pyplot as plt
 
 
 def watershed(img, starting_point=0):
-
     mb32 = img.astype(np.int32)
     # Set the threshold for minima
     minimaThreh = 15

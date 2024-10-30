@@ -7,6 +7,7 @@ import os
 import numpy as np
 import warnings
 import cv2
+import time
 
 from smartem import tools
 
@@ -74,6 +75,9 @@ class GetRescanMapTest(GetRescanMap):
         assert self.params["type"] in self.available_types
 
     def get_rescan_map(self, fast_em):
+        if "sleep_time" in self.params.keys():
+            # simulate the time it takes to generate a rescan map
+            time.sleep(self.params["sleep_time"])
         if self.params["type"] == "half":
             mask = np.zeros_like(fast_em, dtype=bool)
             mask[: mask.shape[0] // 2] = 1

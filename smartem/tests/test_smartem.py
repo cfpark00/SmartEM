@@ -1,12 +1,9 @@
 import pytest
 import numpy as np
-import sys, os
+import os
 import json
 from pathlib import Path
 
-# sys.path.append(os.path.abspath(os.path.join('../..', 'examples')))
-# from smart_em_script import get_microscope, get_get_rescan_map
-import smartem
 from smartem.smartem import SmartEM
 from smartem.online import microscope as microscope_client
 from smartem.online import get_rescan_maps
@@ -16,8 +13,8 @@ repo_dir = Path(os.path.dirname(os.path.abspath(__file__))).parents[1]
 
 @pytest.fixture
 def get_smartem():
-    # initializing fake random microscope
-    params = {"W": 1024, "H": 1024, "dtype": np.uint16}
+    # initializing fake random microscope with sleep on
+    params = {"W": 1024, "H": 1024, "dtype": np.uint16, "sleep": True}
     microscope = microscope_client.FakeRandomMicroscope(params=params)
 
     # initializing get_rescan_map
@@ -29,6 +26,27 @@ def get_smartem():
     assert smart_em.get_rescan_map == get_rescan_map
 
     yield smart_em
+
+
+@pytest.fixture
+def get_default_params():
+    with open(
+        repo_dir / "examples/default_smartem_params.json",
+        "r",
+    ) as f:
+        params = json.load(f)
+        if "resolution" in params:
+            params["resolution"] = tuple(params["resolution"])
+        params["plot"] = False
+
+    with open(
+        repo_dir / "examples/default_imaging_params.json",
+        "r",
+    ) as f:
+        params_imaging = json.load(f)
+        params.update(params_imaging)
+
+    return params
 
 
 def test_smart_em_operations_using_fake_data_and_microscope(get_smartem):
@@ -100,25 +118,11 @@ def test_smart_em_operations_using_fake_data_and_microscope(get_smartem):
             )
 
 
-def test_smart_em_acquire_many_grids(get_smartem, tmp_path):
+def test_smart_em_acquire_many_grids(get_smartem, get_default_params, tmp_path):
     smart_em = get_smartem
     smart_em.initialize()
 
-    with open(
-        repo_dir / "examples/default_smartem_params.json",
-        "r",
-    ) as f:
-        params = json.load(f)
-        if "resolution" in params:
-            params["resolution"] = tuple(params["resolution"])
-        params["plot"] = False
-
-    with open(
-        repo_dir / "examples/default_imaging_params.json",
-        "r",
-    ) as f:
-        params_imaging = json.load(f)
-        params.update(params_imaging)
+    params = get_default_params
 
     smart_em.acquire_many_grids(
         coordinates=params["coordinates"], params=params, save_dir=tmp_path
