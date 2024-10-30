@@ -6,6 +6,18 @@ import scipy.io as sio
 
 from smartem import tools
 
+from functools import wraps
+from time import time
+
+def timing(f):
+    @wraps(f)
+    def wrap(*args, **kw):
+        ts = time()
+        result = f(*args, **kw)
+        te = time()
+        print(f"func:{f.__name__} args:[{args}, {kw}] took: {te-ts:2.4f} sec")
+        return result
+    return wrap
 
 class SmartEM:
     """
@@ -20,6 +32,7 @@ class SmartEM:
         self.microscope = microscope
         self.get_rescan_map = get_rescan_map
 
+    @timing
     def initialize(self):
         """
         Initialize the microscope and the get_rescan_map object.
@@ -27,12 +40,14 @@ class SmartEM:
         self.microscope.initialize()
         self.get_rescan_map.initialize()
 
+    @timing
     def prepare_acquisition(self):
         """
         Prepare the microscope for acquisition.
         """
         self.microscope.prepare_acquisition()
 
+    @timing
     def close(self):
         """
         Close the microscope and the get_rescan_map object.
@@ -40,6 +55,7 @@ class SmartEM:
         self.microscope.close()
         self.get_rescan_map.close()
 
+    @timing
     def acquire(self, params):
         """
         Acquire with params, twice with fast and slow dwell times.
@@ -70,9 +86,10 @@ class SmartEM:
             )
             additional["fig"] = fig
         if "verbose" in params and params["verbose"] > 0:
-            print(f"Acquired fast_em, rescan_em, rescan_map")
+            print("Acquired fast_em, rescan_em, rescan_map")
         return fast_em, rescan_em, rescan_map, additional
 
+    @timing
     def acquire_to(self, save_dir, params):
         """
         Acquire with params and save to save_dir.
@@ -96,8 +113,9 @@ class SmartEM:
         if "fig" in additional:
             additional["fig"].savefig(os.path.join(save_dir, "fig.png"))
         if "verbose" in params and params["verbose"] > 0:
-            print(f"Saved to {save_dir}")
+            print("Saved to " + save_dir)
 
+    @timing
     def acquire_grid(self, xyzrt, theta, nx, ny, dx, dy, params):
         """
         Acquire a grid of images with params.
@@ -132,6 +150,7 @@ class SmartEM:
                 }
         return return_dict
 
+    @timing
     def acquire_many_grids(self, coordinates, params, save_dir):
         """
         Acquire many grids with coordinates and params and save to save_dir.
@@ -186,26 +205,27 @@ class SmartEM:
                 tools.write_im(
                     os.path.join(
                         fast_fol_,
-                        "location_" + str(i).zfill(5) + f"_xi_{xi}_yi_{yi}.png",
+                        "location_" + str(i).zfill(5) + "_xi_" + str(xi) + "_yi_" +str(yi) + ".png",
                     ),
                     value["fast_em"],
                 )
                 tools.write_im(
                     os.path.join(rescan_fol_, "location_" + str(i).zfill(5))
-                    + f"_xi_{xi}_yi_{yi}.png",
+                    + "_xi_" + str(xi) + "_yi_" +str(yi) + ".png",
                     value["rescan_em"],
                 )
                 tools.write_im(
                     os.path.join(rescan_map_fol_, "location_" + str(i).zfill(5))
-                    + f"_xi_{xi}_yi_{yi}.png",
+                    + "_xi_" + str(xi) + "_yi_" +str(yi) + ".png",
                     value["rescan_map"].astype(np.uint8) * 255,
                 )
                 tools.write_im(
                     os.path.join(fast_mb_fol_, "location_" + str(i).zfill(5))
-                    + f"_xi_{xi}_yi_{yi}.png",
+                    + "_xi_" + str(xi) + "_yi_" +str(yi) + ".png",
                     value["additional"]["fast_mb"],
                 )
 
+    @timing
     def acquire_many_grids_from_mat(self, target_mat, params, save_dir):
         """
         Acquire many grids from a .mat file and save to save_dir.
@@ -275,13 +295,13 @@ def show_smart(fast_em, slow_em, rescan_map, fast_dwt, slow_dwt):
     fig = plt.figure(figsize=(20, 15))
     plt.subplot(2, 3, 1)
     plt.imshow(fast_em, interpolation="none", cmap="gray")
-    plt.title(f"fast_em, dwell_time = {fast_dwt*1e9:.0f} ns")
+    #plt.title(f"fast_em, dwell_time = {fast_dwt*1e9:.0f} ns")
     plt.subplot(2, 3, 2)
     plt.imshow(rescan_map, interpolation="none", cmap="gray")
     plt.title("rescan_map")
     plt.subplot(2, 3, 3)
     plt.imshow(slow_em, interpolation="none", cmap="gray")
-    plt.title(f"slow_em, dwell_time = {slow_dwt*1e9:.0f} ns")
+    #plt.title(f"slow_em, dwell_time = {slow_dwt*1e9:.0f} ns")
     plt.subplot(2, 3, 4)
     merged_em = fast_em.copy()
     merged_em[rescan_map] = slow_em[rescan_map]
@@ -289,5 +309,5 @@ def show_smart(fast_em, slow_em, rescan_map, fast_dwt, slow_dwt):
     plt.title("merged_em")
     plt.subplot(2, 3, 5)
     plt.imshow(merged_em - fast_em, interpolation="none", cmap="gray")
-    plt.title(f"merged_em - fast_em")
+    plt.title("merged_em - fast_em")
     return fig
