@@ -8,6 +8,18 @@ import time
 
 from smartem import tools
 
+from functools import wraps
+from time import time
+
+def timing(f):
+    @wraps(f)
+    def wrap(*args, **kw):
+        ts = time()
+        result = f(*args, **kw)
+        te = time()
+        print(f"func:{f.__name__} args:[{args},{kw}] took: {te-ts:2.4f} sec")
+        return result
+    return wrap
 
 class SmartEM:
     """
@@ -22,6 +34,7 @@ class SmartEM:
         self.microscope = microscope
         self.get_rescan_map = get_rescan_map
 
+    @timing
     def initialize(self):
         """
         Initialize the microscope and the get_rescan_map object.
@@ -29,12 +42,14 @@ class SmartEM:
         self.microscope.initialize()
         self.get_rescan_map.initialize()
 
+    @timing
     def prepare_acquisition(self):
         """
         Prepare the microscope for acquisition.
         """
         self.microscope.prepare_acquisition()
 
+    @timing
     def close(self):
         """
         Close the microscope and the get_rescan_map object.
@@ -42,6 +57,7 @@ class SmartEM:
         self.microscope.close()
         self.get_rescan_map.close()
 
+    @timing
     def acquire(self, params):
         """
         Acquire with params, twice with fast and slow dwell times.
@@ -73,6 +89,7 @@ class SmartEM:
             additional["fig"] = fig
         return fast_em, rescan_em, rescan_map, additional
 
+    @timing
     def acquire_to(self, save_dir, params):
         """
         Acquire with params and save to save_dir.
@@ -98,6 +115,7 @@ class SmartEM:
         if "verbose" in params and params["verbose"] > 0:
             print(f"Saved to {save_dir}")
 
+    @timing
     def acquire_grid(self, xyzrt, theta, nx, ny, dx, dy, params):
         """
         Acquire a grid of images with params.
@@ -132,6 +150,7 @@ class SmartEM:
                 }
         return return_dict
 
+    @timing
     def acquire_many_grids(self, coordinates, params, save_dir):
         """
         Acquire many grids with coordinates and params and save to save_dir.
@@ -208,6 +227,7 @@ class SmartEM:
                     value["additional"]["fast_mb"],
                 )
 
+    @timing
     def acquire_many_grids_from_mat(self, target_mat, params, save_dir):
         """
         Acquire many grids from a .mat file and save to save_dir.
