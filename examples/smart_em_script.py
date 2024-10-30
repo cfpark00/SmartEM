@@ -91,7 +91,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--microscope-type", type=str, default="fakedata")
     parser.add_argument(
-        "--params-path", type=str, default="D:\\Tommy\\SmartEM\\examples\\default_smartem_params.json"
+        "--params-path", type=str, default="examples/default_smartem_params.json"
     )
     parser.add_argument(
         "--get-rescan-map-type", type=str, default="test"
@@ -113,7 +113,7 @@ if __name__ == "__main__":
     ], "Unknown microscope type, choose from 'verios', 'fake', 'fakedata'"
 
     params_path = args.params_path
-    assert os.path.exists(params_path), "params_path does not exist:" + params_path
+    assert os.path.exists(params_path), f"params_path {params_path} does not exist"
 
     get_rescan_map_type = args.get_rescan_map_type
     assert get_rescan_map_type in [
@@ -122,7 +122,7 @@ if __name__ == "__main__":
     ], "Unknown get_rescan_map type, choose from 'test', 'membrane_errors'"
     target_mat = args.target_mat
     if microscope_type == "verios":
-        assert os.path.exists(target_mat), "target_mat does not exist:" + target_mat
+        assert os.path.exists(target_mat), f"target_mat {target_mat} does not exist"
     save_dir = args.save_dir
 
     # Get the microscope and get_rescan_map objects

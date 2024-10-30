@@ -312,13 +312,11 @@ class ThermoFisherVerios(BaseMicroscope):
 
         bit_depth = 16
         if "rescan_map" in params.keys():
-            print("[microscope.py] - input params" + str(resolution))
             rescan_map = params["rescan_map"]
 
             rescan_map = (rescan_map.astype(np.uint8) * 255)[:, :, None].repeat(
                 3, axis=2
             )
-            print("[microscope.py] - rescan map shape" + str(rescan_map.shape) + "w/rescan ratio")
             self.microscope.patterning.clear_patterns()
             tools.write_im(self.params["tempfile"], rescan_map)
             bpd = self.BitmapPatternDefinition.load(self.params["tempfile"])
