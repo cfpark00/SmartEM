@@ -48,6 +48,7 @@ def get_microscope(microscope_type):
             }
         }
         my_microscope = microscope.FakeDataMicroscope(params=params)
+        #my_microscope.set_sleep(True)
     else:
         raise ValueError("Unknown microscope type")
     return my_microscope
