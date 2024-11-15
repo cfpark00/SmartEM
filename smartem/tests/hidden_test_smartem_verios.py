@@ -12,8 +12,7 @@ from smartem.smartem import SmartEM
 from smartem.smartem_par import SmartEMPar
 from smartem.online import microscope as microscope_client
 from smartem.online import get_rescan_maps
-
-from smartem.smartem_par import par_test
+from test_smartem import get_default_params
 
 repo_dir = Path(os.path.dirname(os.path.abspath(__file__))).parents[1]
 
@@ -52,27 +51,6 @@ def get_smartem_par():
     yield smart_em
 
 
-@pytest.fixture
-def get_default_params():
-    with open(
-        repo_dir / "examples/default_smartem_params.json",
-        "r",
-    ) as f:
-        params = json.load(f)
-        if "resolution" in params:
-            params["resolution"] = tuple(params["resolution"])
-        params["plot"] = False
-
-    with open(
-        repo_dir / "examples/default_imaging_params_short.json",
-        "r",
-    ) as f:
-        params_imaging = json.load(f)
-        params.update(params_imaging)
-
-    return params
-
-
 def test_smart_em_operations_using_fake_data_and_verios(
     get_smartem, get_default_params
 ):
@@ -87,19 +65,19 @@ def test_smart_em_operations_using_fake_data_and_verios(
     # testing acquire function
     fast_em, rescan_em, rescan_map, additional = smart_em.acquire(params=params)
 
-    # test whether fast_em is a numpy array of size 1024x1024 of type np.uint16
+    # test whether fast_em is a numpy array of size 1768x2048 of type np.uint16
     assert isinstance(fast_em, np.ndarray), "fast_em is not a numpy array"
-    assert fast_em.shape == (1768, 2048), "fast_em is not of size 1024x1024"
+    assert fast_em.shape == (1768, 2048), "fast_em is not of size 1768x2048"
     assert fast_em.dtype == np.uint8, "fast_em is not of type np.uint16"
 
-    # test whether rescan_em is a numpy array of size 1024x1024
+    # test whether rescan_em is a numpy array of size 1768x2048
     assert isinstance(rescan_em, np.ndarray), "rescan_em is not a numpy array"
-    assert rescan_em.shape == (1768, 2048), "rescan_em is not of size 1024x1024"
+    assert rescan_em.shape == (1768, 2048), "rescan_em is not of size 1768x2048"
     assert rescan_em.dtype == np.uint8, "rescan_em is not of type np.uint16"
 
-    # test whether rescan_map is a numpy array of size 1024x1024 of type bool
+    # test whether rescan_map is a numpy array of size 1768x2048 of type bool
     assert isinstance(rescan_map, np.ndarray), "rescan_map is not a numpy array"
-    assert rescan_map.shape == (1768, 2048), "rescan_map is not of size 1024x1024"
+    assert rescan_map.shape == (1768, 2048), "rescan_map is not of size 1768x2048"
     assert (
         rescan_map.dtype == bool
     ), f"rescan_map is not of type bool, rather of type {rescan_map.dtype} "
