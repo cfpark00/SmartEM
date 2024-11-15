@@ -12,9 +12,7 @@ from smartem import tools
 import copy
 import time
 
-from functools import wraps
-
-from smartem.smartem import timing
+from smartem.timing import timing
 
 
 class BaseMicroscope(metaclass=abc.ABCMeta):

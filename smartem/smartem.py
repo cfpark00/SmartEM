@@ -7,10 +7,7 @@ from tqdm import tqdm
 import time
 
 from smartem import tools
-
-
-
-
+from smartem.timing import timing
 
 
 class SmartEM:
