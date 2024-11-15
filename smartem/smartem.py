@@ -8,7 +8,7 @@ import time
 
 from smartem import tools
 from smartem.online.microscope import timing
-    
+
 
 class SmartEM:
     """

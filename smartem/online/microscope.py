@@ -16,20 +16,24 @@ from functools import wraps
 
 time_on = False
 
+
 def timing(f):
     if not time_on:
-        return f 
+        return f
     else:
+
         @wraps(f)
         def wrap(*args, **kw):
             ts = time.time()
             result = f(*args, **kw)
             te = time.time()
-            #print(f"func:{f.__name__} args:[{args},{kw}] took: {te-ts:2.4f} sec")
+            # print(f"func:{f.__name__} args:[{args},{kw}] took: {te-ts:2.4f} sec")
             file = Path(str(f.__code__.co_filename))
             print(f"func:{f.__name__} @ {file.stem} took: {te-ts:2.4f} sec")
             return result
+
         return wrap
+
 
 class BaseMicroscope(metaclass=abc.ABCMeta):
     def __init__(self):
@@ -158,8 +162,7 @@ class FakeDataMicroscope(BaseMicroscope):
 
     @timing
     def prepare_acquisition(self):
-        """Calls auto_stig, auto_focus, and auto_contrast_brightness.
-        """
+        """Calls auto_stig, auto_focus, and auto_contrast_brightness."""
         self.auto_stig()
         self.auto_focus()
         self.auto_contrast_brightness()
@@ -185,10 +188,10 @@ class FakeDataMicroscope(BaseMicroscope):
         file_path = self.params["images_ns"][dwt_ns]
         if not os.path.exists(file_path):
             raise ValueError(f"File {file_path} does not exist")
-        
+
         start = time.time()
         im = tools.load_im(file_path)
-        
+
         if self.sleep:
             num_pixels = np.prod(params["resolution"])
             if "rescan_map" in params.keys():
@@ -196,10 +199,12 @@ class FakeDataMicroscope(BaseMicroscope):
             else:
                 rescan_frac = 1
             im_time = dwt * num_pixels * rescan_frac
-            elapsed = time.time() - start # remove the image loading time from the sleep time
+            elapsed = (
+                time.time() - start
+            )  # remove the image loading time from the sleep time
             if elapsed < im_time:
                 time.sleep(im_time - elapsed)
-                
+
         return im
 
     @timing
