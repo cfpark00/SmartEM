@@ -14,6 +14,8 @@ from smartem import tools
 # from .models import UNet
 from smartem.offline.train_mb_error_detector.NNtools import UNet
 
+from smartem.smartem import timing
+
 
 class GetRescanMap(metaclass=abc.ABCMeta):
     def __init__(self):
@@ -74,6 +76,7 @@ class GetRescanMapTest(GetRescanMap):
             self.params.update(params)
         assert self.params["type"] in self.available_types
 
+    @timing
     def get_rescan_map(self, fast_em):
         if "sleep_time" in self.params.keys():
             # simulate the time it takes to generate a rescan map
@@ -147,6 +150,7 @@ class GetRescanMapMembraneErrors(GetRescanMap):
             self.params["rescan_p_thres"] is not None
         )
 
+    @timing
     def initialize(self):
         if self.params["device"] == "auto":
             self.params["device"] = "cuda" if torch.cuda.is_available() else "cpu"
@@ -176,6 +180,7 @@ class GetRescanMapMembraneErrors(GetRescanMap):
         del self.em2mb_net
         del self.error_net
 
+    @timing
     def get_rescan_map(self, fast_em):
         if self.params["do_clahe"]:
             fast_em = self.clahe(fast_em)
