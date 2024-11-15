@@ -14,7 +14,7 @@ from smartem import tools
 # from .models import UNet
 from smartem.offline.train_mb_error_detector.NNtools import UNet
 
-from smartem.smartem import timing
+from smartem.timing import timing
 
 
 class GetRescanMap(metaclass=abc.ABCMeta):
@@ -201,6 +201,7 @@ class GetRescanMapMembraneErrors(GetRescanMap):
                 rescan_map = self.pad(error_prob > thres)
         return rescan_map, {"fast_mb": mb, "error_prob": error_prob}
 
+    @timing
     def pad(self, binim):
         if self.params["pad"] == 0:
             padded = binim

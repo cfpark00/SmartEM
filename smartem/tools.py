@@ -13,6 +13,8 @@ import shutil
 import h5py
 import torch
 
+from smartem.timing import timing
+
 clahe = cv2.createCLAHE(clipLimit=3).apply
 
 
@@ -57,6 +59,7 @@ def get_logprob(logit, dim=1):
     return logit - lse
 
 
+@timing
 def get_prob(image, net, return_dtype=np.uint8):
     """
     Get the membrane probability map from the image using the net.
