@@ -12,6 +12,10 @@ from smartem import tools
 import copy
 import time
 
+from functools import wraps
+
+from smartem.smartem import timing
+
 
 class BaseMicroscope(metaclass=abc.ABCMeta):
     def __init__(self):
@@ -127,9 +131,25 @@ class FakeDataMicroscope(BaseMicroscope):
                 self.params["images_ns"][key]
             ), f"File {self.params['images_ns'][key]} does not exist"
 
-    def prepare_acquisition(self):
-        pass
+        self.sleep = False
 
+    def set_sleep(self, sleep: bool):
+        """Sets the sleep variable, which determines if the microscope should sleep during function calls to simulate real exectution.
+
+        Args:
+            sleep (bool): Whether the microscope should sleep during function calls.
+        """
+        assert type(sleep) == bool, "sleep must be a boolean"
+        self.sleep = sleep
+
+    @timing
+    def prepare_acquisition(self):
+        """Calls auto_stig, auto_focus, and auto_contrast_brightness."""
+        self.auto_stig()
+        self.auto_focus()
+        self.auto_contrast_brightness()
+
+    @timing
     def get_image(self, params):
         """Read file and return data for image of given dwell time.
 
@@ -150,11 +170,46 @@ class FakeDataMicroscope(BaseMicroscope):
         file_path = self.params["images_ns"][dwt_ns]
         if not os.path.exists(file_path):
             raise ValueError(f"File {file_path} does not exist")
-        return tools.load_im(file_path)
 
+        start = time.time()
+        im = tools.load_im(file_path)
+
+        if self.sleep:
+            num_pixels = np.prod(params["resolution"])
+            if "rescan_map" in params.keys():
+                rescan_frac = np.sum(params["rescan_map"]) / num_pixels
+            else:
+                rescan_frac = 1
+            im_time = dwt * num_pixels * rescan_frac
+            elapsed = (
+                time.time() - start
+            )  # remove the image loading time from the sleep time
+            if elapsed < im_time:
+                time.sleep(im_time - elapsed)
+
+        return im
+
+    @timing
     def move(self, params):
-        raise NotImplementedError("No move implemented for this microscope")
+        if self.sleep:
+            time.sleep(1)
 
+    @timing
+    def auto_focus(self):
+        if self.sleep:
+            time.sleep(9)
+
+    @timing
+    def auto_contrast_brightness(self):
+        if self.sleep:
+            time.sleep(9)
+
+    @timing
+    def auto_stig(self):
+        if self.sleep:
+            time.sleep(9)
+
+    @timing
     def initialize(self):
         pass
 
