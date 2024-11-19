@@ -124,3 +124,26 @@ def write_im(im_path, im):
     im: np.ndarray, image
     """
     cv2.imwrite(im_path, im)
+
+
+def resize_im(im, shape):
+    """Resize an image to a specific shape.
+
+    Args:
+        im (np.ndarray): image
+        shape (tuple): desired shape
+
+    Returns:
+        np.ndarray: resized image
+    """
+    if im.shape[0] > shape[0]:
+        im = im[: shape[0], :]
+    elif im.shape[0] < shape[0]:
+        im = np.pad(im, ((0, shape[0] - im.shape[0]), (0, 0)), mode="edge")
+
+    if im.shape[1] > shape[1]:
+        im = im[:, : shape[1]]
+    elif im.shape[1] < shape[1]:
+        im = np.pad(im, ((0, 0), (0, shape[1] - im.shape[1])), mode="edge")
+
+    return im

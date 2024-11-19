@@ -114,11 +114,13 @@ class FakeDataMicroscope(BaseMicroscope):
 
     default_params = {"images_ns": {}}
 
-    def __init__(self, params=None):
+    def __init__(self, params=None, sleep=False, pad_images=False):
         """Initialize microscope with paths.
 
         Args:
             params (dict, optional): paths of images at various dwell times. Defaults to None.
+            sleep (bool): Whether the microscope should sleep during function calls.
+            pad_images (bool): Whether the images returned by this microscope should be padded to the requested shape.
         """
         super().__init__()
         self.params = self.default_params
@@ -129,16 +131,8 @@ class FakeDataMicroscope(BaseMicroscope):
                 self.params["images_ns"][key]
             ), f"File {self.params['images_ns'][key]} does not exist"
 
-        self.sleep = False
-
-    def set_sleep(self, sleep: bool):
-        """Sets the sleep variable, which determines if the microscope should sleep during function calls to simulate real exectution.
-
-        Args:
-            sleep (bool): Whether the microscope should sleep during function calls.
-        """
-        assert type(sleep) == bool, "sleep must be a boolean"
         self.sleep = sleep
+        self.pad_images = pad_images
 
     @timing
     def prepare_acquisition(self):
@@ -171,6 +165,9 @@ class FakeDataMicroscope(BaseMicroscope):
 
         start = time.time()
         im = tools.load_im(file_path)
+
+        if self.pad_images:
+            im = tools.resize_im(im, params["resolution"])
 
         if self.sleep:
             num_pixels = np.prod(params["resolution"])
