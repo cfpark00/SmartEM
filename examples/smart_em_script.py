@@ -47,8 +47,9 @@ def get_microscope(microscope_type):
                 1200: "./examples/data/example1/loc_001_dwell_01200ns_00014_param_001_yi_1_xi_1_reg.png",
             }
         }
-        my_microscope = microscope.FakeDataMicroscope(params=params)
-        # my_microscope.set_sleep(True)
+        my_microscope = microscope.FakeDataMicroscope(
+            params=params
+        )  # , sleep=True, pad_images=True)
     else:
         raise ValueError("Unknown microscope type")
     return my_microscope
