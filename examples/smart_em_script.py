@@ -41,14 +41,15 @@ def get_microscope(microscope_type):
         params = {
             "images_ns": {
                 50: "./examples/data/example1/loc_001_dwell_00050ns_00002_param_001_yi_1_xi_1_reg.png",
+                75: "./examples/data/example1/loc_001_dwell_00050ns_00002_param_001_yi_1_xi_1_reg.png",
                 100: "./examples/data/example1/loc_001_dwell_00100ns_00004_param_001_yi_1_xi_1_reg.png",
                 200: "./examples/data/example1/loc_001_dwell_00200ns_00007_param_001_yi_1_xi_1_reg.png",
                 500: "./examples/data/example1/loc_001_dwell_00500ns_00010_param_001_yi_1_xi_1_reg.png",
+                800: "./examples/data/example1/loc_001_dwell_00500ns_00010_param_001_yi_1_xi_1_reg.png",
                 1200: "./examples/data/example1/loc_001_dwell_01200ns_00014_param_001_yi_1_xi_1_reg.png",
             }
         }
-        my_microscope = microscope.FakeDataMicroscope(params=params)
-        my_microscope.set_sleep(True)
+        my_microscope = microscope.FakeDataMicroscope(params=params, sleep=True, pad_images=True)
     else:
         raise ValueError("Unknown microscope type")
     return my_microscope
@@ -78,7 +79,7 @@ def get_get_rescan_map(
             "device": "auto",
             "pad": 40,
             "rescan_p_thres": 0.1,
-            "rescan_ratio": None,  # add a number to force a specific rescan ratio
+            "rescan_ratio": 0.1,  # add a number to force a specific rescan ratio
             "search_step": 0.01,
             "do_clahe": True,
         }

@@ -8,6 +8,7 @@ import numpy as np
 import warnings
 import cv2
 import time
+from scipy import optimize
 
 from smartem import tools
 
@@ -190,15 +191,31 @@ class GetRescanMapMembraneErrors(GetRescanMap):
         if self.params["rescan_ratio"] is None:
             rescan_map = self.pad(error_prob > self.params["rescan_p_thres"])
         else:
-            warnings.warn("This is very slow in the current implementation.")
             rescan_ratio = self.params["rescan_ratio"]
-            imsize = np.prod(error_prob.shape)
-            n_target = int(rescan_ratio * imsize)
-            thres = np.quantile(error_prob.flatten(), 1 - rescan_ratio)
+            numel = error_prob.size
+
+            adjusterErr = lambda x: np.abs(np.sum(self.pad(error_prob > x)) / numel - rescan_ratio)
+
+            best_err = 1
+            for x0 in [0.5,1,0]:
+                minimum = optimize.minimize(adjusterErr, x0)
+                err_cand = minimum.fun
+                thresh_cand = minimum.x
+                if err_cand < best_err:
+                    thres = thresh_cand
+                    best_err = err_cand
+
             rescan_map = self.pad(error_prob > thres)
-            while rescan_map.sum() > n_target:
-                thres += self.params["search_step"]
-                rescan_map = self.pad(error_prob > thres)
+
+            # warnings.warn("This is very slow in the current implementation.")
+            # rescan_ratio = self.params["rescan_ratio"]
+            # imsize = np.prod(error_prob.shape)
+            # n_target = int(rescan_ratio * imsize)
+            # thres = np.quantile(error_prob.flatten(), 1 - rescan_ratio)
+            # rescan_map = self.pad(error_prob > thres)
+            # while rescan_map.sum() > n_target:
+            #     thres += self.params["search_step"]
+            #     rescan_map = self.pad(error_prob > thres)
         return rescan_map, {"fast_mb": mb, "error_prob": error_prob}
 
     @timing

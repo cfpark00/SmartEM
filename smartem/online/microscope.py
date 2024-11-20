@@ -112,7 +112,10 @@ class FakeDataMicroscope(BaseMicroscope):
         get_image: read file of given dwell time
     """
 
-    default_params = {"images_ns": {}}
+    default_params = {
+        "tempfile": "./tempfile.bmp",
+        "images_ns": {}
+    }
 
     def __init__(self, params=None, sleep=False, pad_images=False):
         """Initialize microscope with paths.
@@ -164,7 +167,16 @@ class FakeDataMicroscope(BaseMicroscope):
             raise ValueError(f"File {file_path} does not exist")
 
         start = time.time()
-        im = tools.load_im(file_path)
+        if "rescan_map" in params.keys():
+            rescan_map = params["rescan_map"]
+
+            rescan_map = (rescan_map.astype(np.uint8) * 255)[:, :, None].repeat(
+                3, axis=2
+            )
+            tools.write_im(self.params["tempfile"], rescan_map)
+            im = tools.load_im(file_path)
+        else:
+            im = tools.load_im(file_path)
 
         if self.pad_images:
             im = tools.resize_im(im, params["resolution"])
@@ -187,22 +199,22 @@ class FakeDataMicroscope(BaseMicroscope):
     @timing
     def move(self, params):
         if self.sleep:
-            time.sleep(1)
+            time.sleep(0)
 
     @timing
     def auto_focus(self):
         if self.sleep:
-            time.sleep(9)
+            time.sleep(0)
 
     @timing
     def auto_contrast_brightness(self):
         if self.sleep:
-            time.sleep(9)
+            time.sleep(0)
 
     @timing
     def auto_stig(self):
         if self.sleep:
-            time.sleep(9)
+            time.sleep(0)
 
     @timing
     def initialize(self):

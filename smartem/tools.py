@@ -112,7 +112,7 @@ def load_im(im_path, do_clahe=False):
     else:
         return im
 
-
+@timing
 def write_im(im_path, im):
     """
     Write an image to a file.
