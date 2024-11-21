@@ -189,7 +189,8 @@ class GetRescanMapMembraneErrors(GetRescanMap):
         error_prob = tools.get_prob(mb, self.error_net, return_dtype=np.float32)
 
         if self.params["rescan_ratio"] is None:
-            rescan_map = self.pad(error_prob > self.params["rescan_p_thres"])
+            binim = (error_prob > self.params["rescan_p_thres"]).astype(np.uint8)
+            rescan_map = self.pad(binim)
         else:
             rescan_ratio = self.params["rescan_ratio"]
             numel = error_prob.size
@@ -223,7 +224,6 @@ class GetRescanMapMembraneErrors(GetRescanMap):
         if self.params["pad"] == 0:
             padded = binim
         else:
-            padded = skmorph.binary_dilation(
-                binim, np.ones((self.params["pad"], self.params["pad"]))
-            )
-        return padded
+            footprint = np.ones((self.params["pad"], self.params["pad"]), dtype=np.uint8)
+            padded2 = cv2.dilate(binim.astype(np.uint8), footprint, iterations=1)
+        return padded2
