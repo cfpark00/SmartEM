@@ -79,7 +79,7 @@ def get_get_rescan_map(
             "device": "auto",
             "pad": 40,
             "rescan_p_thres": 0.1,
-            "rescan_ratio": 0.1,  # add a number to force a specific rescan ratio
+            "rescan_ratio": None,  # add a number to force a specific rescan ratio
             "search_step": 0.01,
             "do_clahe": True,
         }
