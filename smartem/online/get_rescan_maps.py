@@ -195,28 +195,19 @@ class GetRescanMapMembraneErrors(GetRescanMap):
             rescan_ratio = self.params["rescan_ratio"]
             numel = error_prob.size
 
-            adjusterErr = lambda x: np.abs(np.sum(self.pad(error_prob > x)) / numel - rescan_ratio)
+            adjusterErr = lambda x: np.abs(
+                np.sum(self.pad(error_prob > x)) / numel - rescan_ratio
+            )
 
             best_err = 1
-            for x0 in [0.5,1,0]:
+            for x0 in [0.5, 1, 0]:
                 minimum = optimize.minimize(adjusterErr, x0)
                 err_cand = minimum.fun
                 thresh_cand = minimum.x
                 if err_cand < best_err:
-                    thres = thresh_cand
                     best_err = err_cand
-
+                    thres = thresh_cand
             rescan_map = self.pad(error_prob > thres)
-
-            # warnings.warn("This is very slow in the current implementation.")
-            # rescan_ratio = self.params["rescan_ratio"]
-            # imsize = np.prod(error_prob.shape)
-            # n_target = int(rescan_ratio * imsize)
-            # thres = np.quantile(error_prob.flatten(), 1 - rescan_ratio)
-            # rescan_map = self.pad(error_prob > thres)
-            # while rescan_map.sum() > n_target:
-            #     thres += self.params["search_step"]
-            #     rescan_map = self.pad(error_prob > thres)
         return rescan_map, {"fast_mb": mb, "error_prob": error_prob}
 
     @timing
@@ -224,6 +215,8 @@ class GetRescanMapMembraneErrors(GetRescanMap):
         if self.params["pad"] == 0:
             padded = binim
         else:
-            footprint = np.ones((self.params["pad"], self.params["pad"]), dtype=np.uint8)
-            padded2 = cv2.dilate(binim.astype(np.uint8), footprint, iterations=1)
-        return padded2
+            footprint = np.ones(
+                (self.params["pad"], self.params["pad"]), dtype=np.uint8
+            )
+            padded = cv2.dilate(binim.astype(np.uint8), footprint)
+        return padded
