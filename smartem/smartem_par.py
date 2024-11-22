@@ -9,18 +9,19 @@ import time
 
 from smartem import tools
 from smartem.smartem import show_smart
+from smartem.timing import timing
 
 fast_ims = []
 rescan_masks = []
 
-
+@timing
 def acquire(locs, fast_ims, sleep_time):
     """Method used by par_test to simulate acquisition."""
     for loc in locs:
         fast_ims.append(loc)
         time.sleep(sleep_time)
 
-
+@timing
 def compute(locs, fast_ims, rescan_masks, sleep_time):
     """Method used by par_test to simulate computation."""
     counter = 0
@@ -57,7 +58,7 @@ class par_test:
         b.join()
         return rescan_masks
 
-
+@timing
 def acquire_grid_fast(microscope, xyzrt, theta, nx, ny, dx, dy, params, fast_ems):
     """Acquire fast EMs in a grid. Helper function for SmartEMPar.acquire_grid for parallel acquisition.
 
@@ -84,7 +85,7 @@ def acquire_grid_fast(microscope, xyzrt, theta, nx, ny, dx, dy, params, fast_ems
             fast_em = microscope.get_image(params=params)
             fast_ems.append(fast_em)
 
-
+@timing
 def compute_grid(get_rescan_map, nx, ny, fast_ems, rescan_maps, additionals):
     """Compute rescan maps in a grid. Helper function for SmartEMPar.acquire_grid for parallel computation.
 
@@ -120,6 +121,7 @@ class SmartEMPar:
         self.microscope = microscope
         self.get_rescan_map = get_rescan_map
 
+    @timing
     def initialize(self):
         """
         Initialize the microscope and the get_rescan_map object.
@@ -127,12 +129,14 @@ class SmartEMPar:
         self.microscope.initialize()
         self.get_rescan_map.initialize()
 
+    @timing
     def prepare_acquisition(self):
         """
         Prepare the microscope for acquisition.
         """
         self.microscope.prepare_acquisition()
 
+    @timing
     def close(self):
         """
         Close the microscope and the get_rescan_map object.
@@ -140,6 +144,7 @@ class SmartEMPar:
         self.microscope.close()
         self.get_rescan_map.close()
 
+    @timing
     def acquire_grid_rescan(self, xyzrt, theta, nx, ny, dx, dy, params, rescan_maps):
         R = np.array([[np.cos(theta), np.sin(theta)], [np.sin(theta), -np.cos(theta)]])
         x, y, z, r, t = xyzrt
@@ -160,6 +165,7 @@ class SmartEMPar:
 
         return rescan_ems
 
+    @timing
     def acquire_to(self, save_dir, params):
         """
         Acquire with params and save to save_dir.
@@ -185,6 +191,7 @@ class SmartEMPar:
         if "verbose" in params and params["verbose"] > 0:
             print(f"Saved to {save_dir}")
 
+    @timing
     def acquire_grid(self, xyzrt, theta, nx, ny, dx, dy, params):
         """Acquire a grid of images with params. Parallelizes fast acquisition and computation using threads.
 
@@ -259,6 +266,7 @@ class SmartEMPar:
 
         return return_dict
 
+    @timing
     def acquire_many_grids(self, coordinates, params, save_dir):
         """
         Acquire many grids with coordinates and params and save to save_dir.
@@ -333,6 +341,7 @@ class SmartEMPar:
                     value["additional"]["fast_mb"],
                 )
 
+    @timing
     def acquire_many_grids_from_mat(self, target_mat, params, save_dir):
         """
         Acquire many grids from a .mat file and save to save_dir.

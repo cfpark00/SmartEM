@@ -2,7 +2,7 @@ from pathlib import Path
 from functools import wraps
 import time
 
-time_on = False
+time_on = True
 
 
 def timing(f):

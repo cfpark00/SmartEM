@@ -11,6 +11,7 @@ from pathlib import Path
 
 # add the base SmartEM path to the python path
 from smartem.smartem import SmartEM
+from smartem.smartem_par import SmartEMPar
 from smartem.online import microscope, get_rescan_maps
 
 ###########################################
@@ -142,6 +143,7 @@ if __name__ == "__main__":
     # Initialize Microscope
     print("Initializing Microscope.....")
     my_smart_em = SmartEM(microscope=my_microscope, get_rescan_map=get_rescan_map)
+    my_smart_em = SmartEMPar(microscope=my_microscope, get_rescan_map=get_rescan_map)
     my_smart_em.initialize()
     print("Microscope:", my_smart_em)
     print()
