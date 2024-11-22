@@ -199,12 +199,12 @@ class FakeDataMicroscope(BaseMicroscope):
     @timing
     def move(self, x, y, z=None, r=None, t=None):
         if self.sleep:
-            time.sleep(1)
+            time.sleep(0)
 
     @timing
     def auto_focus(self):
         if self.sleep:
-            time.sleep(4.5)
+            time.sleep(0)
 
     @timing
     def auto_contrast_brightness(self):

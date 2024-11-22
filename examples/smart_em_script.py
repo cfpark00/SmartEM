@@ -143,7 +143,7 @@ if __name__ == "__main__":
     # Initialize Microscope
     print("Initializing Microscope.....")
     my_smart_em = SmartEM(microscope=my_microscope, get_rescan_map=get_rescan_map)
-    my_smart_em = SmartEMPar(microscope=my_microscope, get_rescan_map=get_rescan_map)
+    #my_smart_em = SmartEMPar(microscope=my_microscope, get_rescan_map=get_rescan_map)
     my_smart_em.initialize()
     print("Microscope:", my_smart_em)
     print()

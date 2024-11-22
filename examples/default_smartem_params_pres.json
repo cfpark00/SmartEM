@@ -1,7 +1,7 @@
 {
     "fast_dwt": 75e-9,
     "slow_dwt": 800e-9,
-    "plot": true,
+    "plot": false,
     "invert": true,
     "resolution": [
         2048,

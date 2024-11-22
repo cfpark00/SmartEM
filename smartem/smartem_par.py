@@ -5,6 +5,7 @@ import copy
 import scipy.io as sio
 
 from threading import Event, Thread
+from tqdm import tqdm
 import time
 
 from smartem import tools
@@ -14,14 +15,12 @@ from smartem.timing import timing
 fast_ims = []
 rescan_masks = []
 
-@timing
 def acquire(locs, fast_ims, sleep_time):
     """Method used by par_test to simulate acquisition."""
     for loc in locs:
         fast_ims.append(loc)
         time.sleep(sleep_time)
 
-@timing
 def compute(locs, fast_ims, rescan_masks, sleep_time):
     """Method used by par_test to simulate computation."""
     counter = 0
@@ -291,7 +290,7 @@ class SmartEMPar:
         fast_mb_fol = os.path.join(save_dir, "fast_mb")
         os.makedirs(fast_mb_fol, exist_ok=True)
 
-        for i in range(n_targets):
+        for i in tqdm(range(n_targets), desc="Acquiring targets..."):
             fast_fol_ = os.path.join(fast_fol, "location_" + str(i).zfill(5))
             os.makedirs(fast_fol_, exist_ok=True)
             rescan_fol_ = os.path.join(rescan_fol, "location_" + str(i).zfill(5))
@@ -310,8 +309,8 @@ class SmartEMPar:
             grid_results = self.acquire_grid(
                 xyzrt=xyzrt,
                 theta=theta,
-                nx=2,  # hard coded
-                ny=2,
+                nx=4,  # hard coded
+                ny=4,
                 dx=fov[0] * 0.8,
                 dy=fov[1] * 0.8,
                 params=params,
