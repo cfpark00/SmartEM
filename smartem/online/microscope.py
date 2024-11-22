@@ -197,7 +197,7 @@ class FakeDataMicroscope(BaseMicroscope):
         return im
 
     @timing
-    def move(self, params):
+    def move(self, x, y, z=None, r=None, t=None):
         if self.sleep:
             time.sleep(0)
 
