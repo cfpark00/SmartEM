@@ -185,9 +185,11 @@ class FakeDataMicroscope(BaseMicroscope):
             num_pixels = np.prod(params["resolution"])
             if "rescan_map" in params.keys():
                 rescan_frac = np.sum(params["rescan_map"]) / num_pixels
+                im_time = 1.691
             else:
                 rescan_frac = 1
-            im_time = dwt * num_pixels * rescan_frac
+                im_time = 0.631
+            im_time += dwt * num_pixels * rescan_frac
             elapsed = (
                 time.time() - start
             )  # remove the image loading time from the sleep time

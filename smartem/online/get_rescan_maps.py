@@ -171,8 +171,8 @@ class GetRescanMapMembraneErrors(GetRescanMap):
             (1, 1, 256, 256), device=self.device, dtype=torch.float32
         )
         with torch.no_grad():
-            mb = self.em2mb_net(trial_data)
-            err = self.error_net(trial_data)
+            self.em2mb_net(trial_data)
+            self.error_net(trial_data)
 
         if self.params["do_clahe"]:
             self.clahe = cv2.createCLAHE(clipLimit=255 * 3.0).apply
@@ -185,6 +185,7 @@ class GetRescanMapMembraneErrors(GetRescanMap):
     def get_rescan_map(self, fast_em):
         if self.params["do_clahe"]:
             fast_em = self.clahe(fast_em)
+
         mb = tools.get_prob(fast_em, self.em2mb_net)
         error_prob = tools.get_prob(mb, self.error_net, return_dtype=np.float32)
 
