@@ -1,0 +1,12 @@
+{
+    "fast_dwt": 100e-9,
+    "slow_dwt": 800e-9,
+    "plot": false,
+    "invert": true,
+    "resolution": [
+        2048,
+        1768
+    ],
+    "pixel_size": 4.0e-09,
+    "verbose": 1
+}

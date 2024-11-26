@@ -158,12 +158,16 @@ class GetRescanMapMembraneErrors(GetRescanMap):
         self.device = torch.device(self.params["device"])
 
         self.em2mb_net = UNet.UNet(1, 2)
-        self.em2mb_net.load_state_dict(torch.load(self.params["em2mb_net"]))
+        self.em2mb_net.load_state_dict(
+            torch.load(self.params["em2mb_net"], map_location=self.device)
+        )
         self.em2mb_net.eval()
         self.em2mb_net.to(self.device)
 
         self.error_net = UNet.UNet(1, 2)
-        self.error_net.load_state_dict(torch.load(self.params["error_net"]))
+        self.error_net.load_state_dict(
+            torch.load(self.params["error_net"], map_location=self.device)
+        )
         self.error_net.eval()
         self.error_net.to(self.device)
 
@@ -199,16 +203,11 @@ class GetRescanMapMembraneErrors(GetRescanMap):
                 np.sum(self.pad(error_prob > x)) / numel - rescan_ratio
             )
 
-            best_err = 1
-            for x0 in [0.5, 1, 0]:
-                minimum = optimize.minimize(adjusterErr, x0)
-                err_cand = minimum.fun
-                thresh_cand = minimum.x
-                if err_cand < best_err:
-                    best_err = err_cand
-                    thres = thresh_cand
+            minimum = optimize.minimize_scalar(adjusterErr, bounds=(0, 1))
+            thres = minimum.x
 
             rescan_map = self.pad(error_prob > thres)
+
         return rescan_map, {"fast_mb": mb, "error_prob": error_prob}
 
     @timing
