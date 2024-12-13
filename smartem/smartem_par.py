@@ -15,11 +15,13 @@ from smartem.timing import timing
 fast_ims = []
 rescan_masks = []
 
+
 def acquire(locs, fast_ims, sleep_time):
     """Method used by par_test to simulate acquisition."""
     for loc in locs:
         fast_ims.append(loc)
         time.sleep(sleep_time)
+
 
 def compute(locs, fast_ims, rescan_masks, sleep_time):
     """Method used by par_test to simulate computation."""
@@ -57,6 +59,7 @@ class par_test:
         b.join()
         return rescan_masks
 
+
 @timing
 def acquire_grid_fast(microscope, xyzrt, theta, nx, ny, dx, dy, params, fast_ems):
     """Acquire fast EMs in a grid. Helper function for SmartEMPar.acquire_grid for parallel acquisition.
@@ -83,6 +86,7 @@ def acquire_grid_fast(microscope, xyzrt, theta, nx, ny, dx, dy, params, fast_ems
             params.update({"dwell_time": params["fast_dwt"]})
             fast_em = microscope.get_image(params=params)
             fast_ems.append(fast_em)
+
 
 @timing
 def compute_grid(get_rescan_map, nx, ny, fast_ems, rescan_maps, additionals):

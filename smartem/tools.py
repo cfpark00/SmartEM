@@ -81,6 +81,7 @@ def get_prob(image, net, return_dtype=np.uint8):
         image_torch = torch.tensor(int_to_float(image, dtype=np.float32))[None, None]
     else:
         image_torch = torch.tensor(image, dtype=torch.float32)[None, None]
+
     with torch.no_grad():
         mask_logits = net(
             image_torch.to(device=next(net.parameters()).device, dtype=torch.float32)

@@ -14,8 +14,11 @@ from smartem.smartem import SmartEM
 from smartem.smartem_par import SmartEMPar
 from smartem.online import microscope, get_rescan_maps
 
+
 ###########################################
 # write functions simply handling different cases of the examples
+
+# python examples\smart_em_script.py --get-rescan-map-type membrane_errors --target-mat examples\default_imaging_params_pres.json --params-path examples\default_smartem_params_pres.json
 
 default_target_mat = "D:\\Users\\Lab\\Documents\\SmartEM\\data\\Mouse_NK1\\wafer_calibration\\w03_1mm_nov20.mat"
 

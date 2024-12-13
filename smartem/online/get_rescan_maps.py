@@ -158,12 +158,16 @@ class GetRescanMapMembraneErrors(GetRescanMap):
         self.device = torch.device(self.params["device"])
 
         self.em2mb_net = UNet.UNet(1, 2)
-        self.em2mb_net.load_state_dict(torch.load(self.params["em2mb_net"]))
+        self.em2mb_net.load_state_dict(
+            torch.load(self.params["em2mb_net"], map_location=self.device)
+        )
         self.em2mb_net.eval()
         self.em2mb_net.to(self.device)
 
         self.error_net = UNet.UNet(1, 2)
-        self.error_net.load_state_dict(torch.load(self.params["error_net"]))
+        self.error_net.load_state_dict(
+            torch.load(self.params["error_net"], map_location=self.device)
+        )
         self.error_net.eval()
         self.error_net.to(self.device)
 
@@ -185,9 +189,14 @@ class GetRescanMapMembraneErrors(GetRescanMap):
     def get_rescan_map(self, fast_em):
         if self.params["do_clahe"]:
             fast_em = self.clahe(fast_em)
-
+        # print(torch.cuda.reset_peak_memory_stats())
+        # print(torch.cuda.max_memory_allocated())
+        # torch.cuda.empty_cache()
         mb = tools.get_prob(fast_em, self.em2mb_net)
+        # print(torch.cuda.max_memory_allocated())
         error_prob = tools.get_prob(mb, self.error_net, return_dtype=np.float32)
+        # print(torch.cuda.max_memory_allocated())
+        # raise ValueError()
 
         if self.params["rescan_ratio"] is None:
             binim = (error_prob > self.params["rescan_p_thres"]).astype(np.uint8)
@@ -200,15 +209,13 @@ class GetRescanMapMembraneErrors(GetRescanMap):
                 np.sum(self.pad(error_prob > x)) / numel - rescan_ratio
             )
 
-            best_err = 1
-            for x0 in [0.5, 1, 0]:
-                minimum = optimize.minimize(adjusterErr, x0)
-                err_cand = minimum.fun
-                thresh_cand = minimum.x
-                if err_cand < best_err:
-                    best_err = err_cand
-                    thres = thresh_cand
+            minimum = optimize.minimize_scalar(adjusterErr, bounds=(0, 1))
+            thres = minimum.x
+
             rescan_map = self.pad(error_prob > thres)
+            rescan_map *= 0
+            rescan_map[:int(0.1*rescan_map.shape[0]),:] = 1
+
         return rescan_map, {"fast_mb": mb, "error_prob": error_prob}
 
     @timing
