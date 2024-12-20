@@ -12,8 +12,8 @@ from scipy import optimize
 
 from smartem import tools
 
-# from .models import UNet
-from smartem.offline.train_mb_error_detector.NNtools import UNet
+from smartem.offline.train_mb_error_detector.NNtools import UNet # UNet_16 as UNet
+#from smartem.online.models import UNet
 
 from smartem.timing import timing
 
@@ -213,8 +213,10 @@ class GetRescanMapMembraneErrors(GetRescanMap):
             thres = minimum.x
 
             rescan_map = self.pad(error_prob > thres)
-            rescan_map *= 0
-            rescan_map[:int(0.1*rescan_map.shape[0]),:] = 1
+
+            if adjusterErr(thres) > 0.01:
+                print(np.histogram(error_prob))
+                raise ValueError(minimum)
 
         return rescan_map, {"fast_mb": mb, "error_prob": error_prob}
 

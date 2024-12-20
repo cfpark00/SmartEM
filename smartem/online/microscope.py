@@ -185,10 +185,20 @@ class FakeDataMicroscope(BaseMicroscope):
             num_pixels = np.prod(params["resolution"])
             if "rescan_map" in params.keys():
                 rescan_frac = np.sum(params["rescan_map"]) / num_pixels
-                im_time = 1.691
+                if num_pixels == 2048*1768:
+                    im_time = 1.691
+                elif num_pixels == 4096*3536:
+                    im_time = 4.69
+                else:
+                    raise ValueError(f"Sleep not supported for resolution {params['resolution']}")
             else:
                 rescan_frac = 1
-                im_time = 0.631
+                if num_pixels == 2048*1768:
+                    im_time = 0.631
+                elif num_pixels == 4096*3536:
+                    im_time = 1.24
+                else:
+                    raise ValueError(f"Sleep not supported for resolution {params['resolution']}")
             im_time += dwt * num_pixels * rescan_frac
             elapsed = (
                 time.time() - start
@@ -201,7 +211,7 @@ class FakeDataMicroscope(BaseMicroscope):
     @timing
     def move(self, x, y, z=None, r=None, t=None):
         if self.sleep:
-            time.sleep(1)
+            time.sleep(0)
 
     @timing
     def auto_focus(self):

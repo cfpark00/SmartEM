@@ -12,6 +12,7 @@ import skimage.segmentation as skseg
 import shutil
 import h5py
 import torch
+import torch.nn.functional as F
 
 from smartem.timing import timing
 
@@ -83,17 +84,94 @@ def get_prob(image, net, return_dtype=np.uint8):
         image_torch = torch.tensor(image, dtype=torch.float32)[None, None]
 
     with torch.no_grad():
-        mask_logits = net(
-            image_torch.to(device=next(net.parameters()).device, dtype=torch.float32)
-        )
+        image_torch = image_torch.to(device=next(net.parameters()).device, dtype=torch.float32)
+
+        print(f"Image: {image_torch.shape}@{image_torch.dtype} w/nans: {torch.any(torch.isnan(image_torch))}")
+        print(f"Model: {net.n_channels}channels-> {net.n_classes}classes ({net.training})")
+        for name, param in net.named_parameters():
+            if torch.isnan(param).any():
+                raise ValueError()         
+        for name, param in net.named_buffers():
+            if torch.isnan(param).any():
+                raise ValueError()
+
+        # torch.cuda.empty_cache()
+        with torch.autocast(device_type="cuda", enabled=True):
+            mask_logits = net(
+                image_torch
+            )
+
+        print(f"Mask logits: {mask_logits.shape}@{mask_logits.dtype} w/nans: {torch.any(torch.isnan(mask_logits))}")
+        if torch.any(torch.isnan(mask_logits)):
+            debug_nan(net, image_torch)
+            raise ValueError()
         prob = (
             torch.exp(get_logprob(mask_logits))[0, 1].cpu().detach().numpy()
         )  # 1st channel for membrane
+        if np.any(np.isnan(prob.flatten())):
+            raise ValueError()
     if return_dtype == np.uint8:
         return float_to_int(prob, dtype=return_dtype)
     else:
         return prob.astype(return_dtype)
 
+def debug_nan(model, input_tensor):
+    with torch.autocast(device_type="cuda"):
+        print("Debugging...")
+        intermediate_activations = []
+        for i, module in enumerate([model.inc, model.down1, model.down2, model.down3, model.down4]):
+            input_tensor = input_tensor.clone()
+            intermediate_activations.append(input_tensor)
+            try:
+                input_tensor = module(input_tensor)
+                if not torch.isfinite(input_tensor).all():
+                    print(f"not finite detected after {type(module)} layer {i}")
+                    print()
+                    break
+            except Exception as e:
+                print(f"Error in layer: {e}")
+                break
+
+        for i, module in enumerate([model.up1, model.up2, model.up3, model.up4]):
+            input_tensor = input_tensor.clone()
+            skip_act = intermediate_activations[-1*(i+1)]
+            try:
+                input_tensor = module.upconv(input_tensor)
+
+                if not torch.isfinite(input_tensor).all():
+                    print(f"not finite detected after {type(module)} layer {i} upconv")
+                    print()
+                    break
+
+                diffY = skip_act.size()[2] - input_tensor.size()[2]
+                diffX = skip_act.size()[3] - input_tensor.size()[3]
+
+                input_tensor = F.pad(input_tensor, [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2])
+                input_tensor = torch.cat([skip_act, input_tensor], dim=1)
+
+                # assume skip and skipcat are False
+                for j, layer in enumerate(module.ncbr.layers):
+                    #input_tensor = layer(input_tensor)
+                    #input_tensor = torch.clamp(x, min=-65000, max=65000)
+                    for k, sublayer in enumerate([layer.conv1, layer.bnorm1, layer.relu1]):
+                        print(torch.max(torch.abs(input_tensor)))
+                        print(torch.max(torch.abs(sublayer.weight.data)))
+                        input_tensor = sublayer(input_tensor)
+                        if not torch.isfinite(input_tensor).all():
+                            print(f"not finite detected after {type(sublayer)} sublayer {k}")
+                            if isinstance(sublayer, torch.nn.BatchNorm2d):
+                                print(f"running stats: {sublayer.training}")
+                            break
+                    if not torch.isfinite(input_tensor).all():
+                        print(f"not finite detected in {type(layer)} layer {j}")
+                        break
+
+                if not torch.isfinite(input_tensor).all():
+                    print(f"not finite detected in {type(module)} layer {i} ncbr ({module.ncbr.skip}, {module.ncbr.skipcat})")
+                    break
+            except Exception as e:
+                print(f"Error in {type(module)} layer{i}: {e}")
+                break
 
 def load_im(im_path, do_clahe=False):
     """
@@ -138,11 +216,11 @@ def resize_im(im, shape):
     if im.shape[0] > shape[0]:
         im = im[: shape[0], :]
     elif im.shape[0] < shape[0]:
-        im = np.pad(im, ((0, shape[0] - im.shape[0]), (0, 0)), mode="edge")
+        im = np.pad(im, ((0, shape[0] - im.shape[0]), (0, 0)), mode="reflect")
 
     if im.shape[1] > shape[1]:
         im = im[:, : shape[1]]
     elif im.shape[1] < shape[1]:
-        im = np.pad(im, ((0, 0), (0, shape[1] - im.shape[1])), mode="edge")
+        im = np.pad(im, ((0, 0), (0, shape[1] - im.shape[1])), mode="reflect")
 
     return im
