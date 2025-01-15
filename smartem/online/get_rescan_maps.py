@@ -156,6 +156,7 @@ class GetRescanMapMembraneErrors(GetRescanMap):
         if self.params["device"] == "auto":
             self.params["device"] = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = torch.device(self.params["device"])
+        print(f"torch device: {self.device}")
 
         self.em2mb_net = UNet.UNet(1, 2)
         self.em2mb_net.load_state_dict(

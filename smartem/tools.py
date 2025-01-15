@@ -86,8 +86,8 @@ def get_prob(image, net, return_dtype=np.uint8):
     with torch.no_grad():
         image_torch = image_torch.to(device=next(net.parameters()).device, dtype=torch.float32)
 
-        print(f"Image: {image_torch.shape}@{image_torch.dtype} w/nans: {torch.any(torch.isnan(image_torch))}")
-        print(f"Model: {net.n_channels}channels-> {net.n_classes}classes ({net.training})")
+        # print(f"Image: {image_torch.shape}@{image_torch.dtype} w/nans: {torch.any(torch.isnan(image_torch))}")
+        # print(f"Model: {net.n_channels}channels-> {net.n_classes}classes ({net.training})")
         for name, param in net.named_parameters():
             if torch.isnan(param).any():
                 raise ValueError()         
@@ -96,18 +96,20 @@ def get_prob(image, net, return_dtype=np.uint8):
                 raise ValueError()
 
         # torch.cuda.empty_cache()
-        with torch.autocast(device_type="cuda", enabled=True):
+        with torch.autocast(device_type="cuda", enabled=False):
             mask_logits = net(
                 image_torch
             )
 
-        print(f"Mask logits: {mask_logits.shape}@{mask_logits.dtype} w/nans: {torch.any(torch.isnan(mask_logits))}")
+        # print(f"Mask logits: {mask_logits.shape}@{mask_logits.dtype} w/nans: {torch.sum(torch.isnan(mask_logits))}/{torch.numel(mask_logits)}")
         if torch.any(torch.isnan(mask_logits)):
             debug_nan(net, image_torch)
             raise ValueError()
+        
         prob = (
             torch.exp(get_logprob(mask_logits))[0, 1].cpu().detach().numpy()
         )  # 1st channel for membrane
+
         if np.any(np.isnan(prob.flatten())):
             raise ValueError()
     if return_dtype == np.uint8:
@@ -158,7 +160,7 @@ def debug_nan(model, input_tensor):
                         print(torch.max(torch.abs(sublayer.weight.data)))
                         input_tensor = sublayer(input_tensor)
                         if not torch.isfinite(input_tensor).all():
-                            print(f"not finite detected after {type(sublayer)} sublayer {k}")
+                            print(f"{torch.numel(input_tensor)-torch.sum(torch.isfinite(input_tensor))}/{torch.numel(input_tensor)} not finite detected after {type(sublayer)} sublayer {k}")
                             if isinstance(sublayer, torch.nn.BatchNorm2d):
                                 print(f"running stats: {sublayer.training}")
                             break
