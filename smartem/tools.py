@@ -88,34 +88,54 @@ def get_prob(image, net, return_dtype=np.uint8):
 
         # print(f"Image: {image_torch.shape}@{image_torch.dtype} w/nans: {torch.any(torch.isnan(image_torch))}")
         # print(f"Model: {net.n_channels}channels-> {net.n_classes}classes ({net.training})")
-        for name, param in net.named_parameters():
-            if torch.isnan(param).any():
-                raise ValueError()         
-        for name, param in net.named_buffers():
-            if torch.isnan(param).any():
-                raise ValueError()
+        # for name, param in net.named_parameters():
+        #     if torch.isnan(param).any():
+        #         raise ValueError()         
+        # for name, param in net.named_buffers():
+        #     if torch.isnan(param).any():
+        #         raise ValueError()
 
         # torch.cuda.empty_cache()
-        with torch.autocast(device_type="cuda", enabled=False):
+        with torch.autocast(device_type="cuda", enabled=False):#, dtype=torch.bfloat16):
+            # from torch import nn
+            # finfo = torch.finfo(torch.float16)
+            # def clamp_hook(module, input, output):
+            #     return torch.clamp(output, min=finfo.min, max=finfo.max)
+            # for name, module in net.named_modules():
+            #     if isinstance(module, nn.Conv2d):
+            #         module.register_forward_hook(clamp_hook)
             mask_logits = net(
                 image_torch
             )
 
-        # print(f"Mask logits: {mask_logits.shape}@{mask_logits.dtype} w/nans: {torch.sum(torch.isnan(mask_logits))}/{torch.numel(mask_logits)}")
-        if torch.any(torch.isnan(mask_logits)):
-            debug_nan(net, image_torch)
-            raise ValueError()
+        # # print(f"Mask logits: {mask_logits.shape}@{mask_logits.dtype} w/nans: {torch.sum(torch.isnan(mask_logits))}/{torch.numel(mask_logits)}")
+        # if torch.any(torch.isnan(mask_logits)):
+        #     debug_weights(net)
+        #     debug_nan(net, image_torch)
+        #     raise ValueError("Nan found")
         
         prob = (
             torch.exp(get_logprob(mask_logits))[0, 1].cpu().detach().numpy()
         )  # 1st channel for membrane
 
-        if np.any(np.isnan(prob.flatten())):
-            raise ValueError()
+        # if np.any(np.isnan(prob.flatten())):
+        #     raise ValueError()
     if return_dtype == np.uint8:
         return float_to_int(prob, dtype=return_dtype)
     else:
         return prob.astype(return_dtype)
+
+def debug_weights(model):
+    with torch.autocast(device_type="cuda"):
+        nan_found = False
+        for name, param in model.named_parameters():
+            if 'weight' in name:
+                if not torch.isfinite(param).all():
+                    nan_count = torch.isnan(param).sum().item()
+                    print(f"Layer: {name} contains Nans. No: {nan_count}")
+                    nan_found = True
+            if not nan_found:
+                print("No Nans found in any weight matrices")
 
 def debug_nan(model, input_tensor):
     with torch.autocast(device_type="cuda"):
@@ -134,6 +154,7 @@ def debug_nan(model, input_tensor):
                 print(f"Error in layer: {e}")
                 break
 
+        
         for i, module in enumerate([model.up1, model.up2, model.up3, model.up4]):
             input_tensor = input_tensor.clone()
             skip_act = intermediate_activations[-1*(i+1)]
@@ -158,6 +179,7 @@ def debug_nan(model, input_tensor):
                     for k, sublayer in enumerate([layer.conv1, layer.bnorm1, layer.relu1]):
                         print(torch.max(torch.abs(input_tensor)))
                         print(torch.max(torch.abs(sublayer.weight.data)))
+
                         input_tensor = sublayer(input_tensor)
                         if not torch.isfinite(input_tensor).all():
                             print(f"{torch.numel(input_tensor)-torch.sum(torch.isfinite(input_tensor))}/{torch.numel(input_tensor)} not finite detected after {type(sublayer)} sublayer {k}")
