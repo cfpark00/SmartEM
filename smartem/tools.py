@@ -59,7 +59,7 @@ def get_logprob(logit, dim=1):
     return logit - lse
 
 @timing
-def get_prob(image, net, return_dtype=np.uint8):
+def get_prob(image, net, return_dtype=np.uint8, check_nans=False):
     """
     Get the membrane probability map from the image using the net.
 
@@ -86,40 +86,32 @@ def get_prob(image, net, return_dtype=np.uint8):
     with torch.no_grad():
         image_torch = image_torch.to(device=next(net.parameters()).device, dtype=torch.float32)
 
-        # print(f"Image: {image_torch.shape}@{image_torch.dtype} w/nans: {torch.any(torch.isnan(image_torch))}")
-        # print(f"Model: {net.n_channels}channels-> {net.n_classes}classes ({net.training})")
-        # for name, param in net.named_parameters():
-        #     if torch.isnan(param).any():
-        #         raise ValueError()         
-        # for name, param in net.named_buffers():
-        #     if torch.isnan(param).any():
-        #         raise ValueError()
+        if check_nans:
+            print(f"Image: {image_torch.shape}@{image_torch.dtype} w/nans: {torch.any(torch.isnan(image_torch))}")
+            print(f"Model: {net.n_channels}channels-> {net.n_classes}classes ({net.training})")
+            for name, param in net.named_parameters():
+                if torch.isnan(param).any():
+                    raise ValueError()         
+            for name, param in net.named_buffers():
+                if torch.isnan(param).any():
+                    raise ValueError()
 
-        # torch.cuda.empty_cache()
-        with torch.autocast(device_type="cuda", enabled=False):#, dtype=torch.bfloat16):
-            # from torch import nn
-            # finfo = torch.finfo(torch.float16)
-            # def clamp_hook(module, input, output):
-            #     return torch.clamp(output, min=finfo.min, max=finfo.max)
-            # for name, module in net.named_modules():
-            #     if isinstance(module, nn.Conv2d):
-            #         module.register_forward_hook(clamp_hook)
+        with torch.autocast(device_type="cuda", enabled=True):
             mask_logits = net(
                 image_torch
             )
 
-        # # print(f"Mask logits: {mask_logits.shape}@{mask_logits.dtype} w/nans: {torch.sum(torch.isnan(mask_logits))}/{torch.numel(mask_logits)}")
-        # if torch.any(torch.isnan(mask_logits)):
-        #     debug_weights(net)
-        #     debug_nan(net, image_torch)
-        #     raise ValueError("Nan found")
+        if check_nans and torch.any(torch.isnan(mask_logits)):
+            debug_weights(net)
+            debug_nan(net, image_torch)
+            raise ValueError("Nan found")
         
         prob = (
             torch.exp(get_logprob(mask_logits))[0, 1].cpu().detach().numpy()
         )  # 1st channel for membrane
 
-        # if np.any(np.isnan(prob.flatten())):
-        #     raise ValueError()
+        if check_nans and np.any(np.isnan(prob.flatten())):
+            raise ValueError("NaN found in probs")
     if return_dtype == np.uint8:
         return float_to_int(prob, dtype=return_dtype)
     else:

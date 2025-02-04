@@ -15,6 +15,8 @@ from smartem import tools
 from smartem.offline.train_mb_error_detector.NNtools import UNet # UNet_16 as UNet
 #from smartem.online.models import UNet
 
+from connectomics.model.arch.unet import UNet2D
+
 from smartem.timing import timing
 
 
@@ -158,7 +160,7 @@ class GetRescanMapMembraneErrors(GetRescanMap):
         self.device = torch.device(self.params["device"])
         print(f"torch device: {self.device}")
 
-        self.em2mb_net = UNet.UNet(1, 2)
+        self.em2mb_net = UNet2D(in_channels = 1, out_channels=2) #UNet.UNet(1, 2) 
         self.em2mb_net.load_state_dict(
             torch.load(self.params["em2mb_net"], map_location=self.device)
         )
@@ -190,14 +192,12 @@ class GetRescanMapMembraneErrors(GetRescanMap):
     def get_rescan_map(self, fast_em):
         if self.params["do_clahe"]:
             fast_em = self.clahe(fast_em)
-        # print(torch.cuda.reset_peak_memory_stats())
-        # print(torch.cuda.max_memory_allocated())
-        # torch.cuda.empty_cache()
+        
         mb = tools.get_prob(fast_em, self.em2mb_net)
-        # print(torch.cuda.max_memory_allocated())
-        error_prob = tools.get_prob(mb, self.error_net, return_dtype=np.float32)
-        # print(torch.cuda.max_memory_allocated())
-        # raise ValueError()
+        mb = 1 - mb
+        print(f"Membrane prediction with all finite values: {np.isfinite(mb).all()}")
+        error_prob = np.random.rand(*mb.shape)
+        #error_prob = tools.get_prob(mb, self.error_net, return_dtype=np.float32)
 
         if self.params["rescan_ratio"] is None:
             binim = (error_prob > self.params["rescan_p_thres"]).astype(np.uint8)
