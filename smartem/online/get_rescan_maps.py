@@ -196,8 +196,8 @@ class GetRescanMapMembraneErrors(GetRescanMap):
         mb = tools.get_prob(fast_em, self.em2mb_net)
         mb = 1 - mb
         print(f"Membrane prediction with all finite values: {np.isfinite(mb).all()}")
-        error_prob = np.random.rand(*mb.shape)
-        #error_prob = tools.get_prob(mb, self.error_net, return_dtype=np.float32)
+        #error_prob = np.random.rand(*mb.shape)
+        error_prob = tools.get_prob(mb, self.error_net, return_dtype=np.float32)
 
         if self.params["rescan_ratio"] is None:
             binim = (error_prob > self.params["rescan_p_thres"]).astype(np.uint8)

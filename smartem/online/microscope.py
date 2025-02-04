@@ -181,6 +181,9 @@ class FakeDataMicroscope(BaseMicroscope):
         if self.pad_images:
             im = tools.resize_im(im, params["resolution"])
 
+            if "rescan_map" in params.keys():
+                im[rescan_map[:,:,0] == 0] = 0
+
         if self.sleep:
             num_pixels = np.prod(params["resolution"])
             if "rescan_map" in params.keys():

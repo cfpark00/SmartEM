@@ -59,7 +59,7 @@ def get_logprob(logit, dim=1):
     return logit - lse
 
 @timing
-def get_prob(image, net, return_dtype=np.uint8, check_nans=False):
+def get_prob(image, net, return_dtype=np.uint8, check_nans=True):
     """
     Get the membrane probability map from the image using the net.
 
@@ -87,8 +87,8 @@ def get_prob(image, net, return_dtype=np.uint8, check_nans=False):
         image_torch = image_torch.to(device=next(net.parameters()).device, dtype=torch.float32)
 
         if check_nans:
-            print(f"Image: {image_torch.shape}@{image_torch.dtype} w/nans: {torch.any(torch.isnan(image_torch))}")
-            print(f"Model: {net.n_channels}channels-> {net.n_classes}classes ({net.training})")
+            #print(f"Image: {image_torch.shape}@{image_torch.dtype} w/nans: {torch.any(torch.isnan(image_torch))}")
+            #print(f"Model: {net.n_channels}channels-> {net.n_classes}classes ({net.training})")
             for name, param in net.named_parameters():
                 if torch.isnan(param).any():
                     raise ValueError()         
@@ -96,10 +96,9 @@ def get_prob(image, net, return_dtype=np.uint8, check_nans=False):
                 if torch.isnan(param).any():
                     raise ValueError()
 
-        with torch.autocast(device_type="cuda", enabled=True):
-            mask_logits = net(
-                image_torch
-            )
+        mask_logits = net(
+            image_torch
+        )
 
         if check_nans and torch.any(torch.isnan(mask_logits)):
             debug_weights(net)
