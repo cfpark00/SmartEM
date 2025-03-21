@@ -36,7 +36,7 @@ def get_microscope(microscope_type):
     if microscope_type == "verios":
         # This is the microscope used for the SmartEM paper
         params = {"ip": "192.168.0.1"}  # online mode (microscope active)
-        params = {"ip": "localhost"}  # offline mode
+        params = {"ip":  "localhost"}  # offline mode
         my_microscope = microscope.ThermoFisherVerios(params=params)
     elif microscope_type == "fake":
         # This is a fake microscope that generates random images
@@ -80,7 +80,7 @@ def get_get_rescan_map(
     elif get_rescan_map_type == "membrane_errors":
         # This is the get_rescan_map using ML
         params = {
-            "em2mb_net": "./pretrained_models/em2mb_hp_model.pth",
+            "em2mb_net": "./pretrained_models/em2mb_best.pth",
             "error_net": "./pretrained_models/error_best.pth",
             "device": "auto",
             "pad": 40,
