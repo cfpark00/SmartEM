@@ -19,6 +19,7 @@ from smartem.online import microscope, get_rescan_maps
 # write functions simply handling different cases of the examples
 
 # python examples\smart_em_script.py --get-rescan-map-type membrane_errors --target-mat examples\default_imaging_params_pres.json --params-path examples\default_smartem_params_pres.json
+# python examples\smart_em_script.py --get-rescan-map-type membrane_errors --target-mat examples\w03_imaging_params_single.json --params-path examples\default_smartem_params_pres.json --microscope-type verios
 
 default_target_mat = "D:\\Users\\Lab\\Documents\\SmartEM\\data\\Mouse_NK1\\wafer_calibration\\w03_1mm_nov20.mat"
 
@@ -36,7 +37,7 @@ def get_microscope(microscope_type):
     if microscope_type == "verios":
         # This is the microscope used for the SmartEM paper
         params = {"ip": "192.168.0.1"}  # online mode (microscope active)
-        params = {"ip":  "localhost"}  # offline mode
+        #params = {"ip":  "localhost"}  # offline mode
         my_microscope = microscope.ThermoFisherVerios(params=params)
     elif microscope_type == "fake":
         # This is a fake microscope that generates random images
@@ -80,8 +81,8 @@ def get_get_rescan_map(
     elif get_rescan_map_type == "membrane_errors":
         # This is the get_rescan_map using ML
         params = {
-            "em2mb_net": "./pretrained_models/em2mb_best.pth",
-            "error_net": "./pretrained_models/error_best.pth",
+            "em2mb_net": "./pretrained_models/em2mb_hp_model.pth",
+            "error_net": "./pretrained_models/error_hp.pth",
             "device": "auto",
             "pad": 40,
             "rescan_p_thres": 0.1,
@@ -145,8 +146,13 @@ if __name__ == "__main__":
 
     # Initialize Microscope
     print("Initializing Microscope.....")
-    my_smart_em = SmartEM(microscope=my_microscope, get_rescan_map=get_rescan_map)
-    #my_smart_em = SmartEMPar(microscope=my_microscope, get_rescan_map=get_rescan_map)
+    serial = True
+    if serial:
+        print("Serial mode.....")
+        my_smart_em = SmartEM(microscope=my_microscope, get_rescan_map=get_rescan_map)
+    else:
+        print("Parallel mode.....")
+        my_smart_em = SmartEMPar(microscope=my_microscope, get_rescan_map=get_rescan_map)
     my_smart_em.initialize()
     print("Microscope:", my_smart_em)
     print()

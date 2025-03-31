@@ -161,11 +161,12 @@ class GetRescanMapMembraneErrors(GetRescanMap):
         print(f"torch device: {self.device}")
 
         if "hp" in self.params["em2mb_net"]:
-            print("Loading half precision model...")
+            print("Loading half EM2MB model...")
             self.em2mb_net = UNet2D(in_channels = 1, out_channels=2)
         else:
-            print("Loading full precision model...")
-            self.em2mb_net = UNet.UNet(1, 2) 
+            print("Loading full EM2MB model...")
+            #self.em2mb_net = UNet.UNet(1, 2) 
+            self.em2mb_net = UNet2D(in_channels = 1, out_channels=2)
 
         self.em2mb_net.load_state_dict(
             torch.load(self.params["em2mb_net"], map_location=self.device)
@@ -173,7 +174,15 @@ class GetRescanMapMembraneErrors(GetRescanMap):
         self.em2mb_net.eval()
         self.em2mb_net.to(self.device)
 
-        self.error_net = UNet.UNet(1, 2)
+        
+        if "hp" in self.params["em2mb_net"]:
+            print("Loading half ERRNet model...")
+            self.error_net = UNet2D(in_channels = 1, out_channels=2, filters=[32,64,128,256])
+        else:
+            print("Loading full ERRNet model...")
+            #self.error_net = UNet.UNet(1, 2) 
+            self.error_net = UNet2D(in_channels = 1, out_channels=2, filters=[32,64,128,256])
+
         self.error_net.load_state_dict(
             torch.load(self.params["error_net"], map_location=self.device)
         )

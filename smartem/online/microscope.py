@@ -289,6 +289,7 @@ class ThermoFisherVerios(BaseMicroscope):
         self.sdb_structures = sdb_structures
         self.GrabFrameSettings = GrabFrameSettings
 
+    @timing
     def initialize(self):
         self.microscope = self.SdbMicroscopeClient()
         self.connect()
@@ -297,24 +298,29 @@ class ThermoFisherVerios(BaseMicroscope):
             self.sdb_enums.CoordinateSystem.RAW
         )
 
+    @timing
     def close(self):
         self.disconnect()
         del self.microscope
 
+    @timing
     def connect(self):
         self.microscope.connect(self.params["ip"])
 
     def disconnect(self):
         self.microscope.disconnect()
 
+    @timing
     def prepare_acquisition(self):
-        self.auto_contrast_brightness(baseline=True)
-        self.auto_focus(baseline=True)
+        pass
+        # self.auto_contrast_brightness(baseline=True)
+        # self.auto_focus(baseline=True)
         self.microscope.auto_functions.run_auto_lens_alignment()
         self.auto_stig()
         self.auto_focus()
         self.auto_contrast_brightness()
 
+    @timing
     def auto_focus(self, baseline=False):
         baselineFocus = self.microscope.beams.electron_beam.working_distance.value
         AF_final_horizontal_field_width_focus = self.params[
@@ -348,6 +354,7 @@ class ThermoFisherVerios(BaseMicroscope):
             )
             self.microscope.beams.electron_beam.working_distance.value = baselineFocus
 
+    @timing
     def auto_contrast_brightness(self, baseline=False):
         if baseline:
             # need to run twice for @YARON add reason
@@ -362,6 +369,7 @@ class ThermoFisherVerios(BaseMicroscope):
             acb_settings.number_of_frames = 1
             self.microscope.auto_functions.run_auto_cb(acb_settings)
 
+    @timing
     def auto_stig(self):
         try:
             AS_final_horizontal_field_width_stig = self.params[
@@ -377,6 +385,7 @@ class ThermoFisherVerios(BaseMicroscope):
         except Exception as excp:
             warnings.warn("Auto Stig failed: " + str(excp))
 
+    @timing
     def get_image(self, params):
         params = copy.deepcopy(params)
         resolution = params["resolution"]
@@ -424,6 +433,9 @@ class ThermoFisherVerios(BaseMicroscope):
             pattern = self.microscope.patterning.create_bitmap(
                 0, 0, fov[0], fov[1], params["dwell_time"], bpd
             )
+            # pattern = self.microscope.patterning.create_rectangle(
+            #     0, 0, fov[0], fov[1], params["dwell_time"]
+            # )
             pattern.dwell_time = params["dwell_time"]
             pattern.pass_count = 1
             pattern.scan_type = self.sdb_enums.PatternScanType.RASTER
@@ -449,6 +461,7 @@ class ThermoFisherVerios(BaseMicroscope):
         else:
             return image
 
+    @timing
     def move(self, x, y, z=None, r=None, t=None):
         if z is None or r is None or t is None:
             p = self.microscope.specimen.stage.current_position
