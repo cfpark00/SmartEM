@@ -15,7 +15,6 @@ fast_ims = []
 rescan_masks = []
 
 
-@timing
 def acquire(locs, fast_ims, sleep_time):
     """Method used by par_test to simulate acquisition."""
     for loc in locs:
@@ -23,7 +22,6 @@ def acquire(locs, fast_ims, sleep_time):
         time.sleep(sleep_time)
 
 
-@timing
 def compute(locs, fast_ims, rescan_masks, sleep_time):
     """Method used by par_test to simulate computation."""
     counter = 0
