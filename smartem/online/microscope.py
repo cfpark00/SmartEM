@@ -12,6 +12,8 @@ from smartem import tools
 import copy
 import time
 
+from smartem.timing import timing
+
 
 class BaseMicroscope(metaclass=abc.ABCMeta):
     def __init__(self):
@@ -112,11 +114,13 @@ class FakeDataMicroscope(BaseMicroscope):
 
     default_params = {"images_ns": {}}
 
-    def __init__(self, params=None):
+    def __init__(self, params=None, sleep=False, pad_images=False):
         """Initialize microscope with paths.
 
         Args:
             params (dict, optional): paths of images at various dwell times. Defaults to None.
+            sleep (bool): Whether the microscope should sleep during function calls.
+            pad_images (bool): Whether the images returned by this microscope should be padded to the requested shape.
         """
         super().__init__()
         self.params = self.default_params
@@ -127,9 +131,17 @@ class FakeDataMicroscope(BaseMicroscope):
                 self.params["images_ns"][key]
             ), f"File {self.params['images_ns'][key]} does not exist"
 
-    def prepare_acquisition(self):
-        pass
+        self.sleep = sleep
+        self.pad_images = pad_images
 
+    @timing
+    def prepare_acquisition(self):
+        """Calls auto_stig, auto_focus, and auto_contrast_brightness."""
+        self.auto_stig()
+        self.auto_focus()
+        self.auto_contrast_brightness()
+
+    @timing
     def get_image(self, params):
         """Read file and return data for image of given dwell time.
 
@@ -150,11 +162,49 @@ class FakeDataMicroscope(BaseMicroscope):
         file_path = self.params["images_ns"][dwt_ns]
         if not os.path.exists(file_path):
             raise ValueError(f"File {file_path} does not exist")
-        return tools.load_im(file_path)
 
-    def move(self, params):
-        raise NotImplementedError("No move implemented for this microscope")
+        start = time.time()
+        im = tools.load_im(file_path)
 
+        if self.pad_images:
+            im = tools.resize_im(im, params["resolution"])
+
+        if self.sleep:
+            num_pixels = np.prod(params["resolution"])
+            if "rescan_map" in params.keys():
+                rescan_frac = np.sum(params["rescan_map"]) / num_pixels
+            else:
+                rescan_frac = 1
+            im_time = dwt * num_pixels * rescan_frac
+            elapsed = (
+                time.time() - start
+            )  # remove the image loading time from the sleep time
+            if elapsed < im_time:
+                time.sleep(im_time - elapsed)
+
+        return im
+
+    @timing
+    def move(self, x, y, z=None, r=None, t=None):
+        if self.sleep:
+            time.sleep(1)
+
+    @timing
+    def auto_focus(self):
+        if self.sleep:
+            time.sleep(9)
+
+    @timing
+    def auto_contrast_brightness(self):
+        if self.sleep:
+            time.sleep(9)
+
+    @timing
+    def auto_stig(self):
+        if self.sleep:
+            time.sleep(9)
+
+    @timing
     def initialize(self):
         pass
 

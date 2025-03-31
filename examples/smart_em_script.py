@@ -16,6 +16,8 @@ from smartem.online import microscope, get_rescan_maps
 ###########################################
 # write functions simply handling different cases of the examples
 
+default_target_mat = "D:\\Users\\Lab\\Documents\\SmartEM\\data\\Mouse_NK1\\wafer_calibration\\w03_1mm_nov20.mat"
+
 
 def get_microscope(microscope_type):
     """
@@ -44,10 +46,13 @@ def get_microscope(microscope_type):
                 100: "./examples/data/example1/loc_001_dwell_00100ns_00004_param_001_yi_1_xi_1_reg.png",
                 200: "./examples/data/example1/loc_001_dwell_00200ns_00007_param_001_yi_1_xi_1_reg.png",
                 500: "./examples/data/example1/loc_001_dwell_00500ns_00010_param_001_yi_1_xi_1_reg.png",
+                800: "./examples/data/example1/loc_001_dwell_00500ns_00010_param_001_yi_1_xi_1_reg.png",
                 1200: "./examples/data/example1/loc_001_dwell_01200ns_00014_param_001_yi_1_xi_1_reg.png",
             }
         }
-        my_microscope = microscope.FakeDataMicroscope(params=params)
+        my_microscope = microscope.FakeDataMicroscope(
+            params=params
+        )  # , sleep=True, pad_images=True)
     else:
         raise ValueError("Unknown microscope type")
     return my_microscope
@@ -77,7 +82,7 @@ def get_get_rescan_map(
             "device": "auto",
             "pad": 40,
             "rescan_p_thres": 0.1,
-            "rescan_ratio": None,  # add a number to force a specific rescan ratio
+            "rescan_ratio": 0.1,  # add a number to force a specific rescan ratio
             "search_step": 0.01,
             "do_clahe": True,
         }
@@ -101,7 +106,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--target-mat",
         type=str,
-        default="D:\\Users\\Lab\\Documents\\SmartEM\\data\\Mouse_NK1\\wafer_calibration\\w03_1mm_nov20.mat",
+        default=default_target_mat,
     )
     parser.add_argument("--save-dir", type=str, default="./data/test_94")
     args = parser.parse_args()
@@ -163,7 +168,15 @@ if __name__ == "__main__":
     elif microscope_type == "fake":
         my_smart_em.acquire_to(save_dir=save_dir, params=params)
     elif microscope_type == "fakedata":
-        my_smart_em.acquire_to(save_dir=save_dir, params=params)
+        if target_mat == default_target_mat:
+            my_smart_em.acquire_to(save_dir=save_dir, params=params)
+        else:
+            with open(target_mat, "r") as f:
+                params_imaging = json.load(f)
+            params.update(params_imaging)
+            my_smart_em.acquire_many_grids(
+                coordinates=params["coordinates"], params=params, save_dir=save_dir
+            )
 
     print("Closing.....")
     my_smart_em.close()

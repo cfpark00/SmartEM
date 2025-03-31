@@ -7,6 +7,7 @@ from tqdm import tqdm
 import time
 
 from smartem import tools
+from smartem.timing import timing
 
 
 class SmartEM:
@@ -22,6 +23,7 @@ class SmartEM:
         self.microscope = microscope
         self.get_rescan_map = get_rescan_map
 
+    @timing
     def initialize(self):
         """
         Initialize the microscope and the get_rescan_map object.
@@ -29,6 +31,7 @@ class SmartEM:
         self.microscope.initialize()
         self.get_rescan_map.initialize()
 
+    @timing
     def prepare_acquisition(self):
         """
         Prepare the microscope for acquisition.
@@ -42,6 +45,7 @@ class SmartEM:
         self.microscope.close()
         self.get_rescan_map.close()
 
+    @timing
     def acquire(self, params):
         """
         Acquire with params, twice with fast and slow dwell times.
@@ -73,6 +77,7 @@ class SmartEM:
             additional["fig"] = fig
         return fast_em, rescan_em, rescan_map, additional
 
+    @timing
     def acquire_to(self, save_dir, params):
         """
         Acquire with params and save to save_dir.
