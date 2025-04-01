@@ -4,8 +4,8 @@
     "plot": false,
     "invert": false,
     "resolution": [
-        6144,
-        4096
+        2048,
+        1768
     ],
     "pixel_size": 4.0e-09,
     "verbose": 1

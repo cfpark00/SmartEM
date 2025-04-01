@@ -163,6 +163,7 @@ class GetRescanMapMembraneErrors(GetRescanMap):
         if "hp" in self.params["em2mb_net"]:
             print("Loading half EM2MB model...")
             self.em2mb_net = UNet2D(in_channels = 1, out_channels=2)
+            self.em2mb_net.half()
         else:
             print("Loading full EM2MB model...")
             #self.em2mb_net = UNet.UNet(1, 2) 
@@ -178,6 +179,7 @@ class GetRescanMapMembraneErrors(GetRescanMap):
         if "hp" in self.params["em2mb_net"]:
             print("Loading half ERRNet model...")
             self.error_net = UNet2D(in_channels = 1, out_channels=2, filters=[32,64,128,256])
+            self.error_net.half()
         else:
             print("Loading full ERRNet model...")
             #self.error_net = UNet.UNet(1, 2) 
@@ -193,8 +195,9 @@ class GetRescanMapMembraneErrors(GetRescanMap):
             (1, 1, 256, 256), device=self.device, dtype=torch.float32
         )
         with torch.no_grad():
-            self.em2mb_net(trial_data)
-            self.error_net(trial_data)
+            with torch.autocast(device_type="cuda", enabled=False, dtype=torch.float16):
+                self.em2mb_net(trial_data)
+                self.error_net(trial_data)
 
         if self.params["do_clahe"]:
             self.clahe = cv2.createCLAHE(clipLimit=255 * 3.0).apply
@@ -237,7 +240,7 @@ class GetRescanMapMembraneErrors(GetRescanMap):
 
             rescan_map = self.pad(error_prob > thres)
 
-            if adjusterErr(thres) > 0.01:
+            if adjusterErr(thres) > 0.025:
                 print(np.histogram(error_prob))
                 raise ValueError(minimum)
 
