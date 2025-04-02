@@ -312,9 +312,9 @@ class ThermoFisherVerios(BaseMicroscope):
 
     @timing
     def prepare_acquisition(self):
-        pass
-        # self.auto_contrast_brightness(baseline=True)
-        # self.auto_focus(baseline=True)
+        self.auto_contrast_brightness(baseline=True)
+        self.auto_focus(baseline=True)
+        self.auto_stig(baseline=True)
         self.microscope.auto_functions.run_auto_lens_alignment()
         self.auto_stig()
         self.auto_focus()
@@ -342,9 +342,9 @@ class ThermoFisherVerios(BaseMicroscope):
                     0.1, 0.1, 0.8, 0.02
                 )
                 af_settings.working_distance_step = 100e-9
-                self.microscope.auto_functions.run_auto_focus(af_settings)
+                self.microscope.auto_functions.run_auto_focus(af_settings) # RunAutoFocusSettings structure item 11 does not have any value. proceeding with baseline focus
             newFocus = self.microscope.beams.electron_beam.working_distance.value
-            if (newFocus * 1000) < 5.5:  # @YARON add explanation
+            if (newFocus * 1000) < 5.5:  # @YARON add explanation CHANGE TO 6.5?
                 self.microscope.beams.electron_beam.working_distance.value = (
                     baselineFocus
                 )
@@ -370,20 +370,23 @@ class ThermoFisherVerios(BaseMicroscope):
             self.microscope.auto_functions.run_auto_cb(acb_settings)
 
     @timing
-    def auto_stig(self):
-        try:
-            AS_final_horizontal_field_width_stig = self.params[
-                "AS_final_horizontal_field_width_stig"
-            ]
-            as_settings = self.sdb_structures.RunAutoStigmatorSettings()
-            as_settings.method = self.sdb_enums.AutoFunctionMethod.ONG_ET_AL_GENERAL
-            as_settings.reduced_area = self.sdb_structures.Rectangle(0.1, 0.1, 0.8, 0.8)
-            self.microscope.beams.electron_beam.horizontal_field_width.value = (
-                AS_final_horizontal_field_width_stig
-            )
-            self.microscope.auto_functions.run_auto_stigmator(as_settings)
-        except Exception as excp:
-            warnings.warn("Auto Stig failed: " + str(excp))
+    def auto_stig(self, baseline=False):
+        if baseline:
+            self.microscope.auto_functions.run_auto_stigmator()
+        else:
+            try:
+                AS_final_horizontal_field_width_stig = self.params[
+                    "AS_final_horizontal_field_width_stig"
+                ]
+                as_settings = self.sdb_structures.RunAutoStigmatorSettings()
+                as_settings.method = self.sdb_enums.AutoFunctionMethod.ONG_ET_AL_GENERAL
+                as_settings.reduced_area = self.sdb_structures.Rectangle(0.1, 0.1, 0.8, 0.8)
+                self.microscope.beams.electron_beam.horizontal_field_width.value = (
+                    AS_final_horizontal_field_width_stig
+                )
+                self.microscope.auto_functions.run_auto_stigmator(as_settings)
+            except Exception as excp:
+                warnings.warn("Auto Stig failed: " + str(excp))
 
     @timing
     def get_image(self, params):
