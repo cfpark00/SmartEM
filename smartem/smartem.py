@@ -130,7 +130,6 @@ class SmartEM:
         for ix in range(nx):
             for iy in range(ny):
                 coordinate = np.array([dx * ix, dy * iy]) @ R + np.array([x, y])
-                print(coordinate, z,r,t)
                 self.microscope.move(x=coordinate[0], y=coordinate[1], z=z, r=r, t=t)
                 if ix==0 and iy == 0:
                     self.microscope.auto_focus(baseline=True)

@@ -81,8 +81,8 @@ def get_get_rescan_map(
     elif get_rescan_map_type == "membrane_errors":
         # This is the get_rescan_map using ML
         params = {
-            "em2mb_net": "./pretrained_models/em2mb_best.pth",
-            "error_net": "./pretrained_models/error_best.pth",
+            "em2mb_net": "./pretrained_models/em2mb_hp_model.pth",
+            "error_net": "./pretrained_models/error_hp.pth",
             "device": "auto",
             "pad": 40,
             "rescan_p_thres": 0.1,
