@@ -5,6 +5,7 @@ import copy
 import scipy.io as sio
 
 import threading
+import multiprocessing
 import queue
 import time
 
@@ -21,16 +22,23 @@ class SmartEMParQ:
     get_rescan_map: GetRescanMap, get_rescan_map object
     """
 
-    def __init__(self, microscope, get_rescan_map):
+    def __init__(self, microscope, get_rescan_map, mode="thread"):
         self.microscope = microscope
         self.get_rescan_map = get_rescan_map
-        self.fast_em_queue = queue.Queue(maxsize=1)
 
-        self.fast_ems = []
-        self.rescan_maps = []
-        self.additionals = []
-
-        self.lock = threading.Lock()
+        if mode == "thread":
+            self.mode = "thread"
+            self.fast_em_queue = queue.Queue(maxsize=5)
+            self.fast_ems = []
+            self.rescan_maps = []
+            self.additionals = []
+            self.lock = threading.Lock()
+        elif mode == "multiprocessing":
+            self.mode = "multiprocessing"
+            self.fast_em_queue = multiprocessing.Queue(maxsize=5)
+            self.fast_ems = multiprocessing.Manager().list()
+            self.rescan_maps = multiprocessing.Manager().list()
+            self.additionals = multiprocessing.Manager().list()
 
     @timing
     def initialize(self):
@@ -127,7 +135,10 @@ class SmartEMParQ:
                 params = copy.deepcopy(params)
                 params.update({"dwell_time": params["fast_dwt"]})
                 fast_em = microscope.get_image(params=params)
-                self.fast_em_queue.append(fast_em)
+                if self.mode == "thread":
+                    self.fast_em_queue.append(fast_em)
+                elif self.mode == "multiprocessing":
+                    self.fast_em_queue.put(fast_em)
 
     @timing
     def compute_grid(self, get_rescan_map, nx, ny):
@@ -145,11 +156,17 @@ class SmartEMParQ:
             for iy in range(ny):
                 fast_em = self.fast_em_queue.get()
                 rescan_map, additional = get_rescan_map(fast_em)
-                with self.lock:
+
+                if self.mode == "thread":
+                    with self.lock:
+                        self.fast_ems.append(fast_em)
+                        self.rescan_maps.append(rescan_map)
+                        self.additionals.append(additional)
+                    self.fast_em_queue.task_done()
+                elif self.mode == "multiprocessing":
                     self.fast_ems.append(fast_em)
                     self.rescan_maps.append(rescan_map)
                     self.additionals.append(additional)
-                self.fast_em_queue.task_done()
 
     @timing
     def acquire_grid(self, xyzrt, theta, nx, ny, dx, dy, params):
