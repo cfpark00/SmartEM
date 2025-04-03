@@ -146,7 +146,7 @@ if __name__ == "__main__":
 
     # Initialize Microscope
     print("Initializing Microscope.....")
-    serial = True
+    serial = False
     if serial:
         print("Serial mode.....")
         my_smart_em = SmartEM(microscope=my_microscope, get_rescan_map=get_rescan_map)
