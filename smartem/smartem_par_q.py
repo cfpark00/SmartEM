@@ -129,7 +129,6 @@ class SmartEMParQ:
                 fast_em = microscope.get_image(params=params)
                 self.fast_em_queue.append(fast_em)
 
-
     @timing
     def compute_grid(self, get_rescan_map, nx, ny):
         """Compute rescan maps in a grid. Helper function for SmartEMPar.acquire_grid for parallel computation.
@@ -151,7 +150,6 @@ class SmartEMParQ:
                     self.rescan_maps.append(rescan_map)
                     self.additionals.append(additional)
                 self.fast_em_queue.task_done()
-
 
     @timing
     def acquire_grid(self, xyzrt, theta, nx, ny, dx, dy, params):

@@ -9,6 +9,7 @@ def timing(f):
     if not time_on:
         return f
     else:
+
         @wraps(f)
         def wrap(*args, **kw):
             ts = time.time()
