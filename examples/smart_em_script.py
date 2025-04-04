@@ -12,6 +12,7 @@ from pathlib import Path
 # add the base SmartEM path to the python path
 from smartem.smartem import SmartEM
 from smartem.smartem_par import SmartEMPar
+from smartem.smartem_par_q import SmartEMParQ
 from smartem.online import microscope, get_rescan_maps
 
 
@@ -152,7 +153,8 @@ if __name__ == "__main__":
         my_smart_em = SmartEM(microscope=my_microscope, get_rescan_map=get_rescan_map)
     else:
         print("Parallel mode.....")
-        my_smart_em = SmartEMPar(microscope=my_microscope, get_rescan_map=get_rescan_map)
+        #my_smart_em = SmartEMPar(microscope=my_microscope, get_rescan_map=get_rescan_map)
+        my_smart_em = SmartEMParQ(microscope=my_microscope, get_rescan_map=get_rescan_map, mode="thread")
     my_smart_em.initialize()
     print("Microscope:", my_smart_em)
     print()
