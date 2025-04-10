@@ -23,6 +23,7 @@ def timing(f):
 
         return wrap
 
+
 def time_block(name="Block"):
     ts = time.time()
     try:

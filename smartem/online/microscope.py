@@ -339,7 +339,8 @@ class ThermoFisherVerios(BaseMicroscope):
                     from autoscript_sdb_microscope_client.structures import AdornedImage
 
                     tiff_path = (
-                        Path(self.params["tempfile"]).parent.absolute() / "tempfile.tiff"
+                        Path(self.params["tempfile"]).parent.absolute()
+                        / "tempfile.tiff"
                     )
                     tools.write_im(str(tiff_path), rescan_map[:, :, 0])
                     loaded_tiff = AdornedImage.load(tiff_path)
@@ -347,7 +348,6 @@ class ThermoFisherVerios(BaseMicroscope):
 
                 self.microscope.patterning.clear_patterns()
 
-            
             with time_block("write_rescan_map"):
                 tools.write_im(self.params["tempfile"], rescan_map)
 

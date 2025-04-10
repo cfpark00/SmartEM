@@ -114,15 +114,11 @@ class SmartEMPar2Q:
             coordinate = np.array([dx * ix, dy * iy]) @ R + np.array([x, y])
             self.microscope.move(x=coordinate[0], y=coordinate[1], z=z, r=r, t=t)
             params = copy.deepcopy(params)
-            params.update(
-                {"dwell_time": params["slow_dwt"], "rescan_map": rescan_map}
-            )
+            params.update({"dwell_time": params["slow_dwt"], "rescan_map": rescan_map})
             rescan_em = self.microscope.get_image(params=params)
             with self.lock:
                 self.rescan_ems.append(rescan_em)
             self.rescan_mask_queue.task_done()
-
-        
 
     @timing
     def compute_grid(self, get_rescan_map, nx, ny):
