@@ -1,6 +1,7 @@
 from pathlib import Path
 from functools import wraps
 import time
+from contextlib import contextmanager
 
 time_on = True
 
@@ -21,3 +22,11 @@ def timing(f):
             return result
 
         return wrap
+
+def time_block(name="Block"):
+    ts = time.time()
+    try:
+        yield
+    finally:
+        te = time.time()
+        print(f"code:{name} took: {te-ts:2.4f} sec @ {te}")
