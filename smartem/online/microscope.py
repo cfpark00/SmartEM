@@ -340,8 +340,6 @@ class ThermoFisherVerios(BaseMicroscope):
                 loaded_tiff = AdornedImage.load(tiff_path)
                 self.microscope.imaging.set_image(loaded_tiff)
 
-            image = self.microscope.imaging.get_image().data.copy()
-
             self.microscope.patterning.clear_patterns()
             tools.write_im(self.params["tempfile"], rescan_map)
             bpd = self.BitmapPatternDefinition.load(self.params["tempfile"])
