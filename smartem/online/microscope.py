@@ -219,6 +219,7 @@ class ThermoFisherVerios(BaseMicroscope):
         self.microscope.specimen.stage.set_default_coordinate_system(
             self.sdb_enums.CoordinateSystem.RAW
         )
+        self.microscope.beams.electron_beam.unblank()
 
     def close(self):
         self.disconnect()
@@ -347,10 +348,10 @@ class ThermoFisherVerios(BaseMicroscope):
             pattern = self.microscope.patterning.create_bitmap(
                 0, 0, fov[0], fov[1], params["dwell_time"], bpd
             )
+            # Docs don't suggest a way to set the following fields in the create_bitmap method
             pattern.dwell_time = params["dwell_time"]
             pattern.pass_count = 1
             pattern.scan_type = self.sdb_enums.PatternScanType.RASTER
-            self.microscope.beams.electron_beam.unblank()
             self.microscope.patterning.run()
 
             image = (
