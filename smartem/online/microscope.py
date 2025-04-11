@@ -12,7 +12,7 @@ from smartem import tools
 import copy
 import time
 
-from smartem.timing import timing
+from smartem.timing import timing, time_block
 
 
 class BaseMicroscope(metaclass=abc.ABCMeta):
@@ -297,6 +297,7 @@ class ThermoFisherVerios(BaseMicroscope):
         self.microscope.specimen.stage.set_default_coordinate_system(
             self.sdb_enums.CoordinateSystem.RAW
         )
+        self.microscope.beams.electron_beam.unblank()
 
     @timing
     def close(self):
@@ -312,6 +313,7 @@ class ThermoFisherVerios(BaseMicroscope):
 
     @timing
     def prepare_acquisition(self):
+        self.microscope.patterning.clear_patterns()
         self.auto_contrast_brightness(baseline=True)
         self.auto_focus(baseline=True)
         self.auto_stig(baseline=True)
@@ -390,75 +392,80 @@ class ThermoFisherVerios(BaseMicroscope):
 
     @timing
     def get_image(self, params):
-        params = copy.deepcopy(params)
-        resolution = params["resolution"]
-        pixel_size = params["pixel_size"]
-        fov = (resolution[0] * pixel_size, resolution[1] * pixel_size)
+        with time_block("prep_get_image"):
+            params = copy.deepcopy(params)
+            resolution = params["resolution"]
+            pixel_size = params["pixel_size"]
+            fov = (resolution[0] * pixel_size, resolution[1] * pixel_size)
 
-        self.microscope.beams.electron_beam.scanning.resolution.value = (
-            "%dx%d" % resolution
-        )
-        if "theta" in params.keys():
-            self.microscope.beams.electron_beam.scanning.rotation.value = params[
-                "theta"
-            ]
-        self.microscope.imaging.set_active_view(1)
-        self.microscope.imaging.set_active_device(self.ImagingDevice.ELECTRON_BEAM)
-        self.microscope.beams.electron_beam.horizontal_field_width.value = fov[0]
-        self.microscope.patterning.set_default_beam_type(
-            self.sdb_enums.BeamType.ELECTRON
-        )
+            self.microscope.beams.electron_beam.scanning.resolution.value = (
+                "%dx%d" % resolution
+            )
+            if "theta" in params.keys():
+                self.microscope.beams.electron_beam.scanning.rotation.value = params[
+                    "theta"
+                ]
+            self.microscope.imaging.set_active_view(1)
+            self.microscope.imaging.set_active_device(self.ImagingDevice.ELECTRON_BEAM)
+            self.microscope.beams.electron_beam.horizontal_field_width.value = fov[0]
+            self.microscope.patterning.set_default_beam_type(
+                self.sdb_enums.BeamType.ELECTRON
+            )
 
-        bit_depth = 16
+            bit_depth = 16
         if "rescan_map" in params.keys():
-            rescan_map = params["rescan_map"]
+            with time_block("prep_rescan"):
+                rescan_map = params["rescan_map"]
 
-            rescan_map = (rescan_map.astype(np.uint8) * 255)[:, :, None].repeat(
-                3, axis=2
-            )
-
-            # Simulator environment only serves images of ~1kx1k, so we will feed it an image of our desired shape
-            if self.params["ip"] == "localhost":
-                from autoscript_sdb_microscope_client.structures import AdornedImage
-
-                tiff_path = (
-                    Path(self.params["tempfile"]).parent.absolute() / "tempfile.tiff"
+                rescan_map = (rescan_map.astype(np.uint8) * 255)[:, :, None].repeat(
+                    3, axis=2
                 )
-                tools.write_im(str(tiff_path), rescan_map[:, :, 0])
-                loaded_tiff = AdornedImage.load(tiff_path)
-                self.microscope.imaging.set_image(loaded_tiff)
 
-            image = self.microscope.imaging.get_image().data.copy()
+                # Simulator environment only serves images of ~1kx1k, so we will feed it an image of our desired shape
+                if self.params["ip"] == "localhost":
+                    from autoscript_sdb_microscope_client.structures import AdornedImage
 
-            self.microscope.patterning.clear_patterns()
-            tools.write_im(self.params["tempfile"], rescan_map)
-            bpd = self.BitmapPatternDefinition.load(self.params["tempfile"])
-            pattern = self.microscope.patterning.create_bitmap(
-                0, 0, fov[0], fov[1], params["dwell_time"], bpd
-            )
-            # pattern = self.microscope.patterning.create_rectangle(
-            #     0, 0, fov[0], fov[1], params["dwell_time"]
-            # )
-            pattern.dwell_time = params["dwell_time"]
-            pattern.pass_count = 1
-            pattern.scan_type = self.sdb_enums.PatternScanType.RASTER
-            self.microscope.beams.electron_beam.unblank()
-            self.microscope.patterning.run()
+                    tiff_path = (
+                        Path(self.params["tempfile"]).parent.absolute() / "tempfile.tiff"
+                    )
+                    tools.write_im(str(tiff_path), rescan_map[:, :, 0])
+                    loaded_tiff = AdornedImage.load(tiff_path)
+                    self.microscope.imaging.set_image(loaded_tiff)
 
-            image = (
-                self.microscope.imaging.get_image().data.copy()
-            )  # Ask thermofisher if we can skip copy
-            assert bit_depth == 16, "print only uint16 implemented"
-            self.microscope.patterning.clear_patterns()
+                #image = self.microscope.imaging.get_image().data.copy() # not sure what this does
+
+                self.microscope.patterning.clear_patterns()
+            with time_block("write_rescan_map"):
+                tools.write_im(self.params["tempfile"], rescan_map)
+            with time_block("define_bitmap"):
+                bpd = self.BitmapPatternDefinition.load(self.params["tempfile"])
+            with time_block("create_pattern"):
+                pattern = self.microscope.patterning.create_bitmap(
+                    0, 0, fov[0], fov[1], params["dwell_time"], bpd
+                )
+                pattern.dwell_time = params["dwell_time"]
+                pattern.pass_count = 1
+                pattern.scan_type = self.sdb_enums.PatternScanType.RASTER
+            with time_block("rescan"):
+                self.microscope.patterning.run()
+
+            with time_block("get_rescan"):
+                image = (
+                    self.microscope.imaging.get_image().data.copy()
+                )  # Ask thermofisher if we can skip copy
+                assert bit_depth == 16, "print only uint16 implemented"
+                # self.microscope.patterning.clear_patterns() # only used for visualization on microscope computer?
         else:
-            if "sleep" in self.params.keys():
-                time.sleep(30)
-            settings = self.GrabFrameSettings(
-                resolution="%dx%d" % (resolution[0], resolution[1]),
-                dwell_time=params["dwell_time"],
-                bit_depth=bit_depth,
-            )
-            image = self.microscope.imaging.grab_frame(settings).data
+            with time_block("prep_fastscan"):
+                if "sleep" in self.params.keys():
+                    time.sleep(30)
+                settings = self.GrabFrameSettings(
+                    resolution="%dx%d" % (resolution[0], resolution[1]),
+                    dwell_time=params["dwell_time"],
+                    bit_depth=bit_depth,
+                )
+            with time_block("fastscan"):
+                image = self.microscope.imaging.grab_frame(settings).data
         if "invert" in params.keys() and params["invert"]:
             return np.iinfo(image.dtype).max - image
         else:
