@@ -63,7 +63,7 @@ class SmartEM:
         params = copy.deepcopy(params)
         params.update({"dwell_time": params["fast_dwt"]})
         fast_em = self.microscope.get_image(params=params)
-        #return fast_em, 0*fast_em, 0*fast_em, {"fast_mb": 0*fast_em}
+        # return fast_em, 0*fast_em, 0*fast_em, {"fast_mb": 0*fast_em}
         rescan_map, additional = self.get_rescan_map(fast_em)
         params.update({"dwell_time": params["slow_dwt"], "rescan_map": rescan_map})
         rescan_em = self.microscope.get_image(params=params)
@@ -106,6 +106,84 @@ class SmartEM:
             print(f"Saved to {save_dir}")
 
     @timing
+    def acquire_grid_large(self, xyzrt, theta, nx, ny, dx, dy, params):
+        factor = 1
+        params.update(
+            {
+                "theta": theta,
+                "dwell_time": params["fast_dwt"],
+                "resolution": (2048 * factor, 1768 * factor),
+                "tile_size": (2048, 1768),
+            }
+        )
+
+        x, y, z, r, t = xyzrt
+
+        return_dict = {}
+
+        coordinate = np.array([x, y])
+        self.microscope.move(x=coordinate[0], y=coordinate[1], z=z, r=r, t=t)
+        self.microscope.auto_focus(baseline=True)
+
+        rectangles = self.microscope.prep_get_image_large(params)
+        params.update({"rectangles": rectangles})
+
+        self.microscope.microscope.patterning.clear_patterns()
+        rescan_maps = []
+        for ix in range(len(rectangles)):
+            rescan_maps_row = []
+            for iy in range(len(rectangles[0])):
+                # params.update({"dwell_time": params["fast_dwt"]})
+                # params.pop('rescan_map', None)
+                path = self.microscope.get_image_large(params, idx=(ix, iy))
+
+                fast_em = tools.load_im(path)
+                if "invert" in params.keys() and params["invert"]:
+                    fast_em = np.iinfo(fast_em.dtype).max - fast_em
+                rescan_map, additional = self.get_rescan_map(fast_em)
+                rescan_maps_row.append(rescan_map)
+                # params.update({"dwell_time": params["slow_dwt"], "rescan_map": rescan_map})
+                # rescan_em = self.microscope.get_image_large(params, idx=(ix, iy))
+
+                # return_dict[(ix, iy)] = {
+                #     "fast_em": fast_em,
+                #     "rescan_em": rescan_em,
+                #     "rescan_map": rescan_map,
+                #     "additional": additional,
+                # }
+                # print(rescan_em.shape, rescan_em.dtype)
+
+            rescan_maps_row = np.concatenate(rescan_maps_row, axis=1)
+            rescan_maps.append(rescan_maps_row)
+        rescan_maps = np.concatenate(rescan_maps, axis=0)
+        print(rescan_maps.shape)
+
+        pixel_size = params["pixel_size"]
+        xc = rescan_maps.shape[1] * pixel_size
+        yc = rescan_maps.shape[0] * pixel_size
+        coords_y, coords_x = np.where(rescan_maps > 0)
+        coords_y = coords_y * pixel_size
+        coords_x = coords_x * pixel_size
+        yp = coords_y - yc
+        xp = coords_x - xc
+        stream_y = (yp / pixel_size).astype(int) + 2**15
+        stream_x = (xp / pixel_size).astype(int) + 2**15
+        dts = np.ones(stream_x.shape) * params["slow_dwt"]
+        flags = np.zeros(stream_x.shape)
+        stream = np.array([stream_x, stream_y, dts, flags]).T
+        params["rescan_stream"] = stream
+        rescan_em = self.microscope.get_image_large(params)
+
+        print(rescan_em.shape, rescan_em.dtype)
+        raise ValueError()
+
+        self.microscope.microscope.patterning.run()
+        rescan_em = self.microscope.microscope.imaging.get_image().data.copy()
+        print(rescan_em.shape, rescan_em.dtype)
+
+        return return_dict
+
+    @timing
     def acquire_grid(self, xyzrt, theta, nx, ny, dx, dy, params):
         """
         Acquire a grid of images with params.
@@ -131,7 +209,7 @@ class SmartEM:
             for iy in range(ny):
                 coordinate = np.array([dx * ix, dy * iy]) @ R + np.array([x, y])
                 self.microscope.move(x=coordinate[0], y=coordinate[1], z=z, r=r, t=t)
-                if ix==0 and iy == 0:
+                if ix == 0 and iy == 0:
                     self.microscope.auto_focus(baseline=True)
                 fast_em, rescan_em, rescan_map, additional = self.acquire(params=params)
                 return_dict[(ix, iy)] = {
@@ -185,11 +263,11 @@ class SmartEM:
             theta = params["scan_rotations"][i]
 
             fov = np.array(params["resolution"]) * params["pixel_size"]
-            grid_results = self.acquire_grid(
+            grid_results = self.acquire_grid_large(
                 xyzrt=xyzrt,
                 theta=theta,
-                nx=6,  # hardcoded
-                ny=6,
+                nx=2,  # hardcoded
+                ny=2,
                 dx=fov[0] * 0.8,
                 dy=fov[1] * 0.8,
                 params=params,

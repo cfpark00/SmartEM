@@ -83,8 +83,8 @@ def get_get_rescan_map(
     elif get_rescan_map_type == "membrane_errors":
         # This is the get_rescan_map using ML
         params = {
-            "em2mb_net": "./pretrained_models/em2mb_hp_model.pth",
-            "error_net": "./pretrained_models/error_hp.pth",
+            "em2mb_net": "./pretrained_models/em2mb_best.pth",
+            "error_net": "./pretrained_models/error_best.pth",
             "device": "auto",
             "pad": 40,
             "rescan_p_thres": 0.1,
@@ -148,7 +148,7 @@ if __name__ == "__main__":
 
     # Initialize Microscope
     print("Initializing Microscope.....")
-    serial = False
+    serial = True
     if serial:
         print("Serial mode.....")
         my_smart_em = SmartEM(microscope=my_microscope, get_rescan_map=get_rescan_map)

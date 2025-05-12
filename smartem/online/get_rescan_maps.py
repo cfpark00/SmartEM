@@ -12,8 +12,9 @@ from scipy import optimize
 
 from smartem import tools
 
-from smartem.offline.train_mb_error_detector.NNtools import UNet # UNet_16 as UNet
-#from smartem.online.models import UNet
+from smartem.offline.train_mb_error_detector.NNtools import UNet  # UNet_16 as UNet
+
+# from smartem.online.models import UNet
 
 from connectomics.model.arch.unet import UNet2D
 
@@ -162,12 +163,12 @@ class GetRescanMapMembraneErrors(GetRescanMap):
 
         if "hp" in self.params["em2mb_net"]:
             print("Loading half EM2MB model...")
-            self.em2mb_net = UNet2D(in_channels = 1, out_channels=2)
+            self.em2mb_net = UNet2D(in_channels=1, out_channels=2)
             self.em2mb_net.half()
         else:
             print("Loading full EM2MB model...")
-            #self.em2mb_net = UNet.UNet(1, 2) 
-            self.em2mb_net = UNet2D(in_channels = 1, out_channels=2)
+            self.em2mb_net = UNet.UNet(1, 2)
+            # self.em2mb_net = UNet2D(in_channels = 1, out_channels=2)
 
         self.em2mb_net.load_state_dict(
             torch.load(self.params["em2mb_net"], map_location=self.device)
@@ -175,15 +176,16 @@ class GetRescanMapMembraneErrors(GetRescanMap):
         self.em2mb_net.eval()
         self.em2mb_net.to(self.device)
 
-        
         if "hp" in self.params["em2mb_net"]:
             print("Loading half ERRNet model...")
-            self.error_net = UNet2D(in_channels = 1, out_channels=2, filters=[32,64,128,256])
+            self.error_net = UNet2D(
+                in_channels=1, out_channels=2, filters=[32, 64, 128, 256]
+            )
             self.error_net.half()
         else:
             print("Loading full ERRNet model...")
-            #self.error_net = UNet.UNet(1, 2) 
-            self.error_net = UNet2D(in_channels = 1, out_channels=2, filters=[32,64,128,256])
+            self.error_net = UNet.UNet(1, 2)
+            # self.error_net = UNet2D(in_channels = 1, out_channels=2, filters=[32,64,128,256])
 
         self.error_net.load_state_dict(
             torch.load(self.params["error_net"], map_location=self.device)
@@ -195,7 +197,7 @@ class GetRescanMapMembraneErrors(GetRescanMap):
             (1, 1, 256, 256), device=self.device, dtype=torch.float32
         )
         with torch.no_grad():
-            with torch.autocast(device_type="cuda", enabled=True, dtype=torch.float16):
+            with torch.autocast(device_type="cuda", enabled=False, dtype=torch.float16):
                 self.em2mb_net(trial_data)
                 self.error_net(trial_data)
 
@@ -210,7 +212,7 @@ class GetRescanMapMembraneErrors(GetRescanMap):
     def get_rescan_map(self, fast_em):
         if self.params["do_clahe"]:
             fast_em = self.clahe(fast_em)
-        
+
         mb = tools.get_prob(fast_em, self.em2mb_net)
         mb = 1 - mb
         print(f"Membrane prediction with all finite values: {np.isfinite(mb).all()}")
@@ -222,7 +224,6 @@ class GetRescanMapMembraneErrors(GetRescanMap):
         else:
             print("Not running ERRNet, generating random error values...")
             error_prob = np.random.rand(*mb.shape)
-        
 
         if self.params["rescan_ratio"] is None:
             binim = (error_prob > self.params["rescan_p_thres"]).astype(np.uint8)

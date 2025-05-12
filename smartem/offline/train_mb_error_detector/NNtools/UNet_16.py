@@ -56,7 +56,9 @@ class NCBR(nn.Module):
         forward: pass data through layers
     """
 
-    def __init__(self, in_channels, out_channels, N, skip=False, skipcat=False, up=False):
+    def __init__(
+        self, in_channels, out_channels, N, skip=False, skipcat=False, up=False
+    ):
         """Construct series of convolution blocks
 
         Args:
@@ -101,7 +103,9 @@ class DownNCBR(nn.Module):
     def __init__(self, in_channels, out_channels, N, skip=False, skipcat=False):
         super().__init__()
         self.maxpool = nn.MaxPool2d(2)
-        self.ncbr = NCBR(in_channels, out_channels, N=N, skip=skip, skipcat=skipcat, up=False)
+        self.ncbr = NCBR(
+            in_channels, out_channels, N=N, skip=skip, skipcat=skipcat, up=False
+        )
 
     def forward(self, x):
         return self.ncbr(self.maxpool(x))
@@ -115,7 +119,9 @@ class UpNCBR(nn.Module):
         self.upconv = nn.ConvTranspose2d(
             in_channels, in_channels // 2, kernel_size=2, stride=2
         )
-        self.ncbr = NCBR(in_channels, out_channels, N=N, skip=skip, skipcat=skipcat, up=True)
+        self.ncbr = NCBR(
+            in_channels, out_channels, N=N, skip=skip, skipcat=skipcat, up=True
+        )
 
     def forward(self, x1, x2):
         x1 = self.upconv(x1)
