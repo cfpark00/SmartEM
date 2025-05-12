@@ -18,6 +18,7 @@ from smartem.timing import timing
 
 clahe = cv2.createCLAHE(clipLimit=3).apply
 
+
 def float_to_int(im, dtype=np.uint8):
     """
     Convert an image from float [0,1] to integer.
@@ -58,6 +59,7 @@ def get_logprob(logit, dim=1):
     lse = torch.logsumexp(logit, dim=dim, keepdim=True)
     return logit - lse
 
+
 @timing
 def get_prob(image, net, return_dtype=np.uint8, check_nans=True):
     """
@@ -84,27 +86,27 @@ def get_prob(image, net, return_dtype=np.uint8, check_nans=True):
         image_torch = torch.tensor(image, dtype=torch.float32)[None, None]
 
     with torch.no_grad():
-        image_torch = image_torch.to(device=next(net.parameters()).device, dtype=torch.float32)
+        image_torch = image_torch.to(
+            device=next(net.parameters()).device, dtype=torch.float32
+        )
 
         if check_nans:
-            #print(f"Image: {image_torch.shape}@{image_torch.dtype} w/nans: {torch.any(torch.isnan(image_torch))}")
-            #print(f"Model: {net.n_channels}channels-> {net.n_classes}classes ({net.training})")
+            # print(f"Image: {image_torch.shape}@{image_torch.dtype} w/nans: {torch.any(torch.isnan(image_torch))}")
+            # print(f"Model: {net.n_channels}channels-> {net.n_classes}classes ({net.training})")
             for name, param in net.named_parameters():
                 if torch.isnan(param).any():
-                    raise ValueError()         
+                    raise ValueError()
             for name, param in net.named_buffers():
                 if torch.isnan(param).any():
                     raise ValueError()
         with torch.autocast(device_type="cuda", enabled=True, dtype=torch.float16):
-            mask_logits = net(
-                image_torch
-            )
+            mask_logits = net(image_torch)
 
         if check_nans and torch.any(torch.isnan(mask_logits)):
             debug_weights(net)
             debug_nan(net, image_torch)
             raise ValueError("Nan found")
-        
+
         prob = (
             torch.exp(get_logprob(mask_logits))[0, 1].cpu().detach().numpy()
         )  # 1st channel for membrane
@@ -116,11 +118,12 @@ def get_prob(image, net, return_dtype=np.uint8, check_nans=True):
     else:
         return prob.astype(return_dtype)
 
+
 def debug_weights(model):
     with torch.autocast(device_type="cuda"):
         nan_found = False
         for name, param in model.named_parameters():
-            if 'weight' in name:
+            if "weight" in name:
                 if not torch.isfinite(param).all():
                     nan_count = torch.isnan(param).sum().item()
                     print(f"Layer: {name} contains Nans. No: {nan_count}")
@@ -128,11 +131,14 @@ def debug_weights(model):
             if not nan_found:
                 print("No Nans found in any weight matrices")
 
+
 def debug_nan(model, input_tensor):
     with torch.autocast(device_type="cuda"):
         print("Debugging...")
         intermediate_activations = []
-        for i, module in enumerate([model.inc, model.down1, model.down2, model.down3, model.down4]):
+        for i, module in enumerate(
+            [model.inc, model.down1, model.down2, model.down3, model.down4]
+        ):
             input_tensor = input_tensor.clone()
             intermediate_activations.append(input_tensor)
             try:
@@ -145,10 +151,9 @@ def debug_nan(model, input_tensor):
                 print(f"Error in layer: {e}")
                 break
 
-        
         for i, module in enumerate([model.up1, model.up2, model.up3, model.up4]):
             input_tensor = input_tensor.clone()
-            skip_act = intermediate_activations[-1*(i+1)]
+            skip_act = intermediate_activations[-1 * (i + 1)]
             try:
                 input_tensor = module.upconv(input_tensor)
 
@@ -160,20 +165,27 @@ def debug_nan(model, input_tensor):
                 diffY = skip_act.size()[2] - input_tensor.size()[2]
                 diffX = skip_act.size()[3] - input_tensor.size()[3]
 
-                input_tensor = F.pad(input_tensor, [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2])
+                input_tensor = F.pad(
+                    input_tensor,
+                    [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2],
+                )
                 input_tensor = torch.cat([skip_act, input_tensor], dim=1)
 
                 # assume skip and skipcat are False
                 for j, layer in enumerate(module.ncbr.layers):
-                    #input_tensor = layer(input_tensor)
-                    #input_tensor = torch.clamp(x, min=-65000, max=65000)
-                    for k, sublayer in enumerate([layer.conv1, layer.bnorm1, layer.relu1]):
+                    # input_tensor = layer(input_tensor)
+                    # input_tensor = torch.clamp(x, min=-65000, max=65000)
+                    for k, sublayer in enumerate(
+                        [layer.conv1, layer.bnorm1, layer.relu1]
+                    ):
                         print(torch.max(torch.abs(input_tensor)))
                         print(torch.max(torch.abs(sublayer.weight.data)))
 
                         input_tensor = sublayer(input_tensor)
                         if not torch.isfinite(input_tensor).all():
-                            print(f"{torch.numel(input_tensor)-torch.sum(torch.isfinite(input_tensor))}/{torch.numel(input_tensor)} not finite detected after {type(sublayer)} sublayer {k}")
+                            print(
+                                f"{torch.numel(input_tensor)-torch.sum(torch.isfinite(input_tensor))}/{torch.numel(input_tensor)} not finite detected after {type(sublayer)} sublayer {k}"
+                            )
                             if isinstance(sublayer, torch.nn.BatchNorm2d):
                                 print(f"running stats: {sublayer.training}")
                             break
@@ -182,11 +194,14 @@ def debug_nan(model, input_tensor):
                         break
 
                 if not torch.isfinite(input_tensor).all():
-                    print(f"not finite detected in {type(module)} layer {i} ncbr ({module.ncbr.skip}, {module.ncbr.skipcat})")
+                    print(
+                        f"not finite detected in {type(module)} layer {i} ncbr ({module.ncbr.skip}, {module.ncbr.skipcat})"
+                    )
                     break
             except Exception as e:
                 print(f"Error in {type(module)} layer{i}: {e}")
                 break
+
 
 def load_im(im_path, do_clahe=False):
     """
@@ -205,6 +220,7 @@ def load_im(im_path, do_clahe=False):
         return clahe(im)
     else:
         return im
+
 
 @timing
 def write_im(im_path, im):

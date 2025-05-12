@@ -10,6 +10,7 @@ def timing(f):
     if not time_on:
         return f
     else:
+
         @wraps(f)
         def wrap(*args, **kw):
             ts = time.time()
@@ -21,6 +22,7 @@ def timing(f):
             return result
 
         return wrap
+
 
 @contextmanager
 def time_block(name="Name"):

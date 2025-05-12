@@ -82,7 +82,7 @@ def acquire_grid_fast(microscope, xyzrt, theta, nx, ny, dx, dy, params, fast_ems
         for iy in range(ny):
             coordinate = np.array([dx * ix, dy * iy]) @ R + np.array([x, y])
             microscope.move(x=coordinate[0], y=coordinate[1], z=z, r=r, t=t)
-            if ix==0 and iy == 0:
+            if ix == 0 and iy == 0:
                 microscope.auto_focus(baseline=True)
             params = copy.deepcopy(params)
             params.update({"dwell_time": params["fast_dwt"]})

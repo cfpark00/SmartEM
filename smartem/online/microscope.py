@@ -112,10 +112,7 @@ class FakeDataMicroscope(BaseMicroscope):
         get_image: read file of given dwell time
     """
 
-    default_params = {
-        "tempfile": "./tempfile.bmp",
-        "images_ns": {}
-    }
+    default_params = {"tempfile": "./tempfile.bmp", "images_ns": {}}
 
     def __init__(self, params=None, sleep=False, pad_images=False):
         """Initialize microscope with paths.
@@ -182,26 +179,30 @@ class FakeDataMicroscope(BaseMicroscope):
             im = tools.resize_im(im, params["resolution"])
 
             if "rescan_map" in params.keys():
-                im[rescan_map[:,:,0] == 0] = 0
+                im[rescan_map[:, :, 0] == 0] = 0
 
         if self.sleep:
             num_pixels = np.prod(params["resolution"])
             if "rescan_map" in params.keys():
                 rescan_frac = np.sum(params["rescan_map"]) / num_pixels
-                if num_pixels == 2048*1768:
+                if num_pixels == 2048 * 1768:
                     im_time = 1.691
-                elif num_pixels == 4096*3536:
+                elif num_pixels == 4096 * 3536:
                     im_time = 4.69
                 else:
-                    raise ValueError(f"Sleep not supported for resolution {params['resolution']}")
+                    raise ValueError(
+                        f"Sleep not supported for resolution {params['resolution']}"
+                    )
             else:
                 rescan_frac = 1
-                if num_pixels == 2048*1768:
+                if num_pixels == 2048 * 1768:
                     im_time = 0.631
-                elif num_pixels == 4096*3536:
+                elif num_pixels == 4096 * 3536:
                     im_time = 1.24
                 else:
-                    raise ValueError(f"Sleep not supported for resolution {params['resolution']}")
+                    raise ValueError(
+                        f"Sleep not supported for resolution {params['resolution']}"
+                    )
             im_time += dwt * num_pixels * rescan_frac
             elapsed = (
                 time.time() - start
@@ -344,7 +345,9 @@ class ThermoFisherVerios(BaseMicroscope):
                     0.1, 0.1, 0.8, 0.02
                 )
                 af_settings.working_distance_step = 100e-9
-                self.microscope.auto_functions.run_auto_focus(af_settings) # RunAutoFocusSettings structure item 11 does not have any value. proceeding with baseline focus
+                self.microscope.auto_functions.run_auto_focus(
+                    af_settings
+                )  # RunAutoFocusSettings structure item 11 does not have any value. proceeding with baseline focus
             newFocus = self.microscope.beams.electron_beam.working_distance.value
             if (newFocus * 1000) < 5.5:  # @YARON add explanation CHANGE TO 6.5?
                 self.microscope.beams.electron_beam.working_distance.value = (
@@ -382,7 +385,9 @@ class ThermoFisherVerios(BaseMicroscope):
                 ]
                 as_settings = self.sdb_structures.RunAutoStigmatorSettings()
                 as_settings.method = self.sdb_enums.AutoFunctionMethod.ONG_ET_AL_GENERAL
-                as_settings.reduced_area = self.sdb_structures.Rectangle(0.1, 0.1, 0.8, 0.8)
+                as_settings.reduced_area = self.sdb_structures.Rectangle(
+                    0.1, 0.1, 0.8, 0.8
+                )
                 self.microscope.beams.electron_beam.horizontal_field_width.value = (
                     AS_final_horizontal_field_width_stig
                 )
@@ -426,13 +431,14 @@ class ThermoFisherVerios(BaseMicroscope):
                     from autoscript_sdb_microscope_client.structures import AdornedImage
 
                     tiff_path = (
-                        Path(self.params["tempfile"]).parent.absolute() / "tempfile.tiff"
+                        Path(self.params["tempfile"]).parent.absolute()
+                        / "tempfile.tiff"
                     )
                     tools.write_im(str(tiff_path), rescan_map[:, :, 0])
                     loaded_tiff = AdornedImage.load(tiff_path)
                     self.microscope.imaging.set_image(loaded_tiff)
 
-                #image = self.microscope.imaging.get_image().data.copy() # not sure what this does
+                # image = self.microscope.imaging.get_image().data.copy() # not sure what this does
 
                 self.microscope.patterning.clear_patterns()
             with time_block("write_rescan_map"):
