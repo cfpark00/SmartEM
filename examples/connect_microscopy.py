@@ -4,15 +4,13 @@ import autoscript_sdb_microscope_client.sdb_microscope_client as sdb_microscope_
 
 
 microscope = SdbMicroscopeClient()
-microscope.connect()#"192.168.0.1")
+microscope.connect()  # "192.168.0.1")
 
 microscope.detector.type.value == "CBS"
 microscope.specimen.stage.set_default_coordinate_system(sdb_enums.CoordinateSystem.RAW)
 
 
-microscope.specimen.stage.set_default_coordinate_system(
-    sdb_enums.CoordinateSystem.RAW
-)
+microscope.specimen.stage.set_default_coordinate_system(sdb_enums.CoordinateSystem.RAW)
 
 bmp_path = "D:\\Users\\Lab\\Documents\\SmartEM\\athey\\SmartEM\\tempfile.bmp"
 bpd = sdb_microscope_client.BitmapPatternDefinition.load(bmp_path)

@@ -39,7 +39,7 @@ def get_microscope(microscope_type):
     if microscope_type == "verios":
         # This is the microscope used for the SmartEM paper
         params = {"ip": "192.168.0.1"}  # online mode (microscope active)
-        #params = {"ip":  "localhost"}  # offline mode
+        # params = {"ip":  "localhost"}  # offline mode
         my_microscope = microscope.ThermoFisherVerios(params=params)
     elif microscope_type == "fake":
         # This is a fake microscope that generates random images
@@ -58,7 +58,9 @@ def get_microscope(microscope_type):
                 1200: "./examples/data/example1/loc_001_dwell_01200ns_00014_param_001_yi_1_xi_1_reg.png",
             }
         }
-        my_microscope = microscope.FakeDataMicroscope(params=params, sleep=False, pad_images=True)
+        my_microscope = microscope.FakeDataMicroscope(
+            params=params, sleep=False, pad_images=True
+        )
     else:
         raise ValueError("Unknown microscope type")
     return my_microscope
@@ -154,9 +156,11 @@ if __name__ == "__main__":
         my_smart_em = SmartEM(microscope=my_microscope, get_rescan_map=get_rescan_map)
     else:
         print("Parallel mode.....")
-        #my_smart_em = SmartEMPar(microscope=my_microscope, get_rescan_map=get_rescan_map)
-        #my_smart_em = SmartEMParQ(microscope=my_microscope, get_rescan_map=get_rescan_map, mode="thread")
-        my_smart_em = SmartEMPar2Q(microscope=my_microscope, get_rescan_map=get_rescan_map)
+        # my_smart_em = SmartEMPar(microscope=my_microscope, get_rescan_map=get_rescan_map)
+        # my_smart_em = SmartEMParQ(microscope=my_microscope, get_rescan_map=get_rescan_map, mode="thread")
+        my_smart_em = SmartEMPar2Q(
+            microscope=my_microscope, get_rescan_map=get_rescan_map
+        )
     my_smart_em.initialize()
     print("Microscope:", my_smart_em)
     print()
