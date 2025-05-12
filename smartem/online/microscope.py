@@ -446,9 +446,9 @@ class ThermoFisherVerios(BaseMicroscope):
         fov = (resolution[0] * pixel_size, resolution[1] * pixel_size)
         center_x, center_y, width, height = xywh
 
-        self.microscope.beams.electron_beam.scanning.resolution.value = (
-            "%dx%d" % tile_size
-        )
+        # self.microscope.beams.electron_beam.scanning.resolution.value = (
+        #     "%dx%d" % tile_size
+        # )
         if "theta" in params.keys():
             self.microscope.beams.electron_beam.scanning.rotation.value = params[
                 "theta"

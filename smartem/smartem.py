@@ -107,7 +107,7 @@ class SmartEM:
 
     @timing
     def acquire_grid_large(self, xyzrt, theta, nx, ny, dx, dy, params):
-        factor = 1
+        factor = 4
         params.update(
             {
                 "theta": theta,
