@@ -89,6 +89,9 @@ class FakeRandomMicroscope(BaseMicroscope):
                 time.sleep(params["fast_dwt"] * 1e7)
             return image
 
+    def auto_focus(self, baseline=False):
+        pass
+
     def move(self, **kwargs):
         pass
 
