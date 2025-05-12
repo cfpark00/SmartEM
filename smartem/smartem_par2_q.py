@@ -60,9 +60,11 @@ class SmartEMPar2Q:
     def acquire_to(self, save_dir, params):
         """
         Acquire with params and save to save_dir.
+
         Args:
         save_dir: str, directory to save
         params: dict, parameters Required: fast_dwt, slow_dwt, verbose
+
         Returns:
         None
         """
@@ -122,6 +124,10 @@ class SmartEMPar2Q:
     @timing
     def compute_grid(self, get_rescan_map, nx, ny):
         """Compute rescan maps in a grid. Helper function for SmartEMPar.acquire_grid for parallel computation.
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
         Args:
             get_rescan_map (smartem.get_rescan_map.GetRescanMap): Rescan map computation function.
             nx (int): Number of grid points in x
@@ -146,6 +152,10 @@ class SmartEMPar2Q:
     @timing
     def acquire_grid(self, xyzrt, theta, nx, ny, dx, dy, params):
         """Acquire a grid of images with params. Parallelizes fast acquisition and computation using threads.
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
         Args:
             xyzrt (np.ndarray): Imaging parameters
             theta (float): rotation angle
@@ -154,6 +164,10 @@ class SmartEMPar2Q:
             dx (float): grid spacing in x
             dy (float): grid spacing in y
             params (dict): parameters Required: fast_dwt, slow_dwt
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
         Returns:
             _type_: _description_
         """
@@ -219,10 +233,18 @@ class SmartEMPar2Q:
     def acquire_many_grids(self, coordinates, params, save_dir):
         """
         Acquire many grids with coordinates and params and save to save_dir.
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
         Args:
         coordinates: np.ndarray, (n, 5) x, y, z, r, t
         params: dict, imaging parameters
         save_dir: str, directory to save
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
         Returns:
         None
         """
@@ -292,9 +314,11 @@ class SmartEMPar2Q:
     def acquire_many_grids_from_mat(self, target_mat, params, save_dir):
         """
         Acquire many grids from a .mat file and save to save_dir.
+
         Args:
         target_mat: str, path to the .mat file
         save_dir: str, directory to save
+
         Returns:
         None
         """
