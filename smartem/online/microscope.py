@@ -475,17 +475,33 @@ class ThermoFisherVerios(BaseMicroscope):
             )
             pattern.dwell_time = params["dwell_time"]
             pattern.pass_count = 1
-            pattern.scan_type = self.sdb_enums.PatternScanType.RASTER
-            print(
-                bpd,
-                xywh,
-                pattern.center_x,
-                pattern.center_y,
-                pattern.width,
-                pattern.height,
+            position_settings = self.sdb_structures.GetRtmPositionSettings(
+                None,
+                self.sdb_enums.RtmCoordinateSystem.DAC
             )
-            # self.microscope.patterning.run()
-            rescan = np.eye(3)  # self.microscope.imaging.get_image().data.copy()
+            self.microscope.patterning.real_time_monitor.mode = self.sdb_enums.RtmMode.HIGH_RESOLUTION
+            self.microscope.patterning.real_time_monitor.restart()
+            self.microscope.patterning.start()
+            rtm_positions = []
+            try:
+                while self.microscope.patterning.state != self.sdb_enums.PatterningState.IDLE:
+
+                    # Get RTM data
+                    rtm_data = self.microscope.patterning.real_time_monitor.get_data()
+
+                    if len(rtm_positions) == 0:
+                        # Get RTM positions only once
+                        rtm_positions = self.microscope.patterning.real_time_monitor.get_positions(position_settings)
+
+                    # If both positions and data are present, process them
+                    if len(rtm_positions) > 0 and len(rtm_data) > 0:
+                        print("collected pattern")
+                        print(rtm_data, rtm_positions)
+                        print(rtm_data.values.shape, rtm_positions.positions.shape)
+
+            finally:
+                self.microscope.patterning.stop()
+                self.microscope.patterning.real_time_monitor.stop()
 
             return rescan
         elif "rescan_stream" in params.keys():
@@ -493,9 +509,35 @@ class ThermoFisherVerios(BaseMicroscope):
             spd.points = params["rescan_stream"]
             spd.repeat_count = 1
             pattern = self.microscope.patterning.create_stream(0, 0, spd)
-            self.microscope.patterning.run()
-            rescan = self.microscope.imaging.get_image().data.copy()
-            return rescan
+            position_settings = self.sdb_structures.GetRtmPositionSettings(
+                None,
+                self.sdb_enums.RtmCoordinateSystem.DAC
+            )
+            self.microscope.patterning.real_time_monitor.mode = self.sdb_enums.RtmMode.HIGH_RESOLUTION
+            self.microscope.patterning.real_time_monitor.restart()
+            self.microscope.patterning.start()
+            rtm_positions = []
+            try:
+                while self.microscope.patterning.state != self.sdb_enums.PatterningState.IDLE:
+
+                    # Get RTM data
+                    rtm_data = self.microscope.patterning.real_time_monitor.get_data()
+
+                    if len(rtm_positions) == 0:
+                        # Get RTM positions only once
+                        rtm_positions = self.microscope.patterning.real_time_monitor.get_positions(position_settings)
+
+                    # If both positions and data are present, process them
+                    if len(rtm_positions) > 0 and len(rtm_data) > 0:
+                        images = get_images_from_rtm_data(rtm_data, rtm_positions)
+                        print("collected pattern")
+                        print(images[0].shape)
+
+            finally:
+                self.microscope.patterning.stop()
+                self.microscope.patterning.real_time_monitor.stop()
+
+            return images[0]
         else:
             settings = self.GrabFrameSettings(
                 resolution="%dx%d" % (resolution[0], resolution[1]),
@@ -511,6 +553,56 @@ class ThermoFisherVerios(BaseMicroscope):
                 file_path=path, settings=settings
             )
         return path
+    
+    def make_pattern(self, idx, resolution, rescan_map, params):
+        pixel_size = params["pixel_size"]
+        fov = (resolution[0] * pixel_size, resolution[1] * pixel_size)
+        _, xywh = params["rectangles"][idx[0]][idx[1]]
+        center_x, center_y, _, _ = xywh
+
+        rescan_map = (rescan_map.astype(np.uint8) * 255)[:, :, None].repeat(
+            3, axis=2
+        )
+        tools.write_im(self.params["tempfile"], rescan_map)
+        bpd = self.BitmapPatternDefinition.load(self.params["tempfile"])
+        pattern = self.microscope.patterning.create_bitmap(
+            center_x, center_y, fov[0], fov[1], params["dwell_time"], bpd
+        )
+        pattern.dwell_time = params["slow_dwt"]
+        pattern.pass_count = 1
+        pattern.scan_type = self.sdb_enums.PatternScanType.RASTER
+
+    def rescan(self, params):
+        position_settings = self.sdb_structures.GetRtmPositionSettings(
+            None,
+            self.sdb_enums.RtmCoordinateSystem.DAC
+        )
+        self.microscope.patterning.real_time_monitor.mode = self.sdb_enums.RtmMode.HIGH_RESOLUTION
+        self.microscope.patterning.real_time_monitor.restart()
+        self.microscope.patterning.start()
+        rtm_positions = []
+        images = []
+        #time.sleep(1)
+        try:
+            while self.microscope.patterning.state != self.sdb_enums.PatterningState.IDLE:
+
+                # Get RTM data
+                rtm_data = self.microscope.patterning.real_time_monitor.get_data()
+
+                if len(rtm_positions) == 0:
+                    # Get RTM positions only once
+                    rtm_positions = self.microscope.patterning.real_time_monitor.get_positions(position_settings)
+
+                # If both positions and data are present, process them
+                if len(rtm_positions) > 0 and len(rtm_data) > 0:
+                    images += get_images_from_rtm_data(rtm_data, rtm_positions)
+
+        finally:
+            self.microscope.patterning.stop()
+            self.microscope.patterning.real_time_monitor.stop()
+
+        return images
+
 
     @timing
     def get_image(self, params):
@@ -608,3 +700,31 @@ class ThermoFisherVerios(BaseMicroscope):
             x=x, y=y, z=z, r=r, t=t, coordinate_system="Raw"
         )
         self.microscope.specimen.stage.absolute_move(p2)
+
+
+def get_images_from_rtm_data(rtm_data, rtm_positions):
+    result = []
+
+    for pattern in rtm_positions:
+        try:
+            # find pattern in data list for the pattern in position list
+            data_set = next(x for x in rtm_data if x.pattern_id == pattern.pattern_id)
+        except Exception:
+            continue
+        positions = (pattern.positions).astype("int")
+
+        # Prepare image for drawing
+        x_min = min(positions, key=lambda p: p[0])[0]
+        x_max = max(positions, key=lambda p: p[0])[0]
+        y_min = min(positions, key=lambda p: p[1])[1]
+        y_max = max(positions, key=lambda p: p[1])[1]
+        print(x_min, x_max, y_min, y_max)
+
+        arr = np.zeros((1768, 2048),dtype=int)
+        for i, pos in enumerate(positions):
+            new_pos = [int((p - mn) / (4 / (sz*4/2**16))) for p, mn, sz in zip(pos, [x_min, y_min], [1768, 2048])]
+            arr[new_pos[1], new_pos[0]] = data_set.values[i]
+
+        result.append(arr)
+
+    return result

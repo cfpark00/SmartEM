@@ -14,6 +14,7 @@ from smartem.smartem import SmartEM
 from smartem.smartem_par import SmartEMPar
 from smartem.smartem_par_q import SmartEMParQ
 from smartem.smartem_par2_q import SmartEMPar2Q
+from smartem.smartem_par_2client import SmartEMPar2Client
 from smartem.online import microscope, get_rescan_maps
 
 
@@ -22,6 +23,7 @@ from smartem.online import microscope, get_rescan_maps
 
 # python examples\smart_em_script.py --get-rescan-map-type membrane_errors --target-mat examples\default_imaging_params_pres.json --params-path examples\default_smartem_params_pres.json
 # python examples\smart_em_script.py --get-rescan-map-type membrane_errors --target-mat examples\w03_imaging_params_single.json --params-path examples\default_smartem_params_pres.json --microscope-type verios
+# python examples\smart_em_script.py --get-rescan-map-type membrane_errors --target-mat examples\nonwafer_imaging_params_1.json --params-path examples\default_smartem_params_pres.json --microscope-type verios
 
 default_target_mat = "D:\\Users\\Lab\\Documents\\SmartEM\\data\\Mouse_NK1\\wafer_calibration\\w03_1mm_nov20.mat"
 
@@ -150,17 +152,25 @@ if __name__ == "__main__":
 
     # Initialize Microscope
     print("Initializing Microscope.....")
-    serial = True
-    if serial:
+    mode = "serial"
+    if mode == "serial":
         print("Serial mode.....")
         my_smart_em = SmartEM(microscope=my_microscope, get_rescan_map=get_rescan_map)
-    else:
+    elif mode == "parallel":
         print("Parallel mode.....")
         # my_smart_em = SmartEMPar(microscope=my_microscope, get_rescan_map=get_rescan_map)
         # my_smart_em = SmartEMParQ(microscope=my_microscope, get_rescan_map=get_rescan_map, mode="thread")
         my_smart_em = SmartEMPar2Q(
             microscope=my_microscope, get_rescan_map=get_rescan_map
         )
+    elif mode == "2client":
+        my_microscope_2 = get_microscope(microscope_type)
+        my_smart_em = SmartEMPar2Client(
+            microscope_fast=my_microscope,
+            microscope_slow=my_microscope_2,
+            get_rescan_map=get_rescan_map
+        )
+
     my_smart_em.initialize()
     print("Microscope:", my_smart_em)
     print()
