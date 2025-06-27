@@ -11,10 +11,35 @@ from pathlib import Path
 
 # add the base SmartEM path to the python path
 from smartem.smartem import SmartEM
+from smartem.smartem_par import SmartEMPar
+from smartem.smartem_par_q import SmartEMParQ
+from smartem.smartem_par2_q import SmartEMPar2Q
+from smartem.smartem_par_2client import SmartEMPar2Client
 from smartem.online import microscope, get_rescan_maps
+
 
 ###########################################
 # write functions simply handling different cases of the examples
+
+# python examples\smart_em_script.py --get-rescan-map-type membrane_errors --target-mat examples\default_imaging_params_pres.json --params-path examples\default_smartem_params_pres.json
+# python examples\smart_em_script.py --get-rescan-map-type membrane_errors --target-mat examples\w03_imaging_params_single.json --params-path examples\default_smartem_params_pres.json --microscope-type verios
+# python examples\smart_em_script.py --get-rescan-map-type membrane_errors --target-mat examples\nonwafer_imaging_params_1.json --params-path examples\default_smartem_params_pres.json --microscope-type verios
+
+# Editting
+# smart_em_script.py
+# - network param paths
+# - serial/parallel argument
+# smartem.py
+# - no. tiles in grid
+# - traditional early stop
+# get_rescan_maps.py
+# - unet class type
+# - autocast
+# tools.py
+# - autocast
+# config jsons for smartem and imaging
+
+default_target_mat = "D:\\Users\\Lab\\Documents\\SmartEM\\data\\Mouse_NK1\\wafer_calibration\\w03_1mm_nov20.mat"
 
 
 def get_microscope(microscope_type):
@@ -30,7 +55,7 @@ def get_microscope(microscope_type):
     if microscope_type == "verios":
         # This is the microscope used for the SmartEM paper
         params = {"ip": "192.168.0.1"}  # online mode (microscope active)
-        params = {"ip": "localhost"}  # offline mode
+        # params = {"ip":  "localhost"}  # offline mode
         my_microscope = microscope.ThermoFisherVerios(params=params)
     elif microscope_type == "fake":
         # This is a fake microscope that generates random images
@@ -41,13 +66,17 @@ def get_microscope(microscope_type):
         params = {
             "images_ns": {
                 50: "./examples/data/example1/loc_001_dwell_00050ns_00002_param_001_yi_1_xi_1_reg.png",
+                75: "./examples/data/example1/loc_001_dwell_00050ns_00002_param_001_yi_1_xi_1_reg.png",
                 100: "./examples/data/example1/loc_001_dwell_00100ns_00004_param_001_yi_1_xi_1_reg.png",
                 200: "./examples/data/example1/loc_001_dwell_00200ns_00007_param_001_yi_1_xi_1_reg.png",
                 500: "./examples/data/example1/loc_001_dwell_00500ns_00010_param_001_yi_1_xi_1_reg.png",
+                800: "./examples/data/example1/loc_001_dwell_00500ns_00010_param_001_yi_1_xi_1_reg.png",
                 1200: "./examples/data/example1/loc_001_dwell_01200ns_00014_param_001_yi_1_xi_1_reg.png",
             }
         }
-        my_microscope = microscope.FakeDataMicroscope(params=params)
+        my_microscope = microscope.FakeDataMicroscope(
+            params=params, sleep=False, pad_images=True
+        )
     else:
         raise ValueError("Unknown microscope type")
     return my_microscope
@@ -72,12 +101,12 @@ def get_get_rescan_map(
     elif get_rescan_map_type == "membrane_errors":
         # This is the get_rescan_map using ML
         params = {
-            "em2mb_net": "./pretrained_models/em2mb_best.pth",
-            "error_net": "./pretrained_models/error_best.pth",
+            "em2mb_net": "./pretrained_models/em2mb_hp_model.pth",
+            "error_net": "./pretrained_models/error_hp.pth",
             "device": "auto",
             "pad": 40,
             "rescan_p_thres": 0.1,
-            "rescan_ratio": None,  # add a number to force a specific rescan ratio
+            "rescan_ratio": 0.1,  # add a number to force a specific rescan ratio
             "search_step": 0.01,
             "do_clahe": True,
         }
@@ -101,7 +130,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--target-mat",
         type=str,
-        default="D:\\Users\\Lab\\Documents\\SmartEM\\data\\Mouse_NK1\\wafer_calibration\\w03_1mm_nov20.mat",
+        default=default_target_mat,
     )
     parser.add_argument("--save-dir", type=str, default="./data/test_94")
     args = parser.parse_args()
@@ -137,7 +166,25 @@ if __name__ == "__main__":
 
     # Initialize Microscope
     print("Initializing Microscope.....")
-    my_smart_em = SmartEM(microscope=my_microscope, get_rescan_map=get_rescan_map)
+    mode = "parallel"
+    if mode == "serial":
+        print("Serial mode.....")
+        my_smart_em = SmartEM(microscope=my_microscope, get_rescan_map=get_rescan_map)
+    elif mode == "parallel":
+        print("Parallel mode.....")
+        # my_smart_em = SmartEMPar(microscope=my_microscope, get_rescan_map=get_rescan_map)
+        # my_smart_em = SmartEMParQ(microscope=my_microscope, get_rescan_map=get_rescan_map, mode="thread")
+        my_smart_em = SmartEMPar2Q(
+            microscope=my_microscope, get_rescan_map=get_rescan_map
+        )
+    elif mode == "2client":
+        my_microscope_2 = get_microscope(microscope_type)
+        my_smart_em = SmartEMPar2Client(
+            microscope_fast=my_microscope,
+            microscope_slow=my_microscope_2,
+            get_rescan_map=get_rescan_map
+        )
+
     my_smart_em.initialize()
     print("Microscope:", my_smart_em)
     print()
@@ -163,7 +210,15 @@ if __name__ == "__main__":
     elif microscope_type == "fake":
         my_smart_em.acquire_to(save_dir=save_dir, params=params)
     elif microscope_type == "fakedata":
-        my_smart_em.acquire_to(save_dir=save_dir, params=params)
+        if target_mat == default_target_mat:
+            my_smart_em.acquire_to(save_dir=save_dir, params=params)
+        else:
+            with open(target_mat, "r") as f:
+                params_imaging = json.load(f)
+            params.update(params_imaging)
+            my_smart_em.acquire_many_grids(
+                coordinates=params["coordinates"], params=params, save_dir=save_dir
+            )
 
     print("Closing.....")
     my_smart_em.close()

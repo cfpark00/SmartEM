@@ -20,8 +20,8 @@ dependencies = [
     "scikit-image==0.21.0",
     "h5py==3.9.0",
     "tqdm==4.66.1",
-    "connectomics",
-    "torch"
+    "torch",
+    "connectomics @ git+https://github.com/zudi-lin/pytorch_connectomics.git",
 ]
 
 [tool.setuptools]

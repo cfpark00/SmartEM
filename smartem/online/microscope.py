@@ -89,6 +89,9 @@ class FakeRandomMicroscope(BaseMicroscope):
                 time.sleep(params["fast_dwt"] * 1e7)
             return image
 
+    def auto_focus(self, baseline=False):
+        pass
+
     def move(self, **kwargs):
         pass
 
@@ -112,13 +115,15 @@ class FakeDataMicroscope(BaseMicroscope):
         get_image: read file of given dwell time
     """
 
-    default_params = {"images_ns": {}}
+    default_params = {"tempfile": "./tempfile.bmp", "images_ns": {}}
 
-    def __init__(self, params=None):
+    def __init__(self, params=None, sleep=False, pad_images=False):
         """Initialize microscope with paths.
 
         Args:
             params (dict, optional): paths of images at various dwell times. Defaults to None.
+            sleep (bool): Whether the microscope should sleep during function calls.
+            pad_images (bool): Whether the images returned by this microscope should be padded to the requested shape.
         """
         super().__init__()
         self.params = self.default_params
@@ -129,9 +134,17 @@ class FakeDataMicroscope(BaseMicroscope):
                 self.params["images_ns"][key]
             ), f"File {self.params['images_ns'][key]} does not exist"
 
-    def prepare_acquisition(self):
-        pass
+        self.sleep = sleep
+        self.pad_images = pad_images
 
+    @timing
+    def prepare_acquisition(self):
+        """Calls auto_stig, auto_focus, and auto_contrast_brightness."""
+        self.auto_stig()
+        self.auto_focus()
+        self.auto_contrast_brightness()
+
+    @timing
     def get_image(self, params):
         """Read file and return data for image of given dwell time.
 
@@ -152,11 +165,77 @@ class FakeDataMicroscope(BaseMicroscope):
         file_path = self.params["images_ns"][dwt_ns]
         if not os.path.exists(file_path):
             raise ValueError(f"File {file_path} does not exist")
-        return tools.load_im(file_path)
 
-    def move(self, params):
-        raise NotImplementedError("No move implemented for this microscope")
+        start = time.time()
+        if "rescan_map" in params.keys():
+            rescan_map = params["rescan_map"]
 
+            rescan_map = (rescan_map.astype(np.uint8) * 255)[:, :, None].repeat(
+                3, axis=2
+            )
+            tools.write_im(self.params["tempfile"], rescan_map)
+            im = tools.load_im(file_path)
+        else:
+            im = tools.load_im(file_path)
+
+        if self.pad_images:
+            im = tools.resize_im(im, params["resolution"])
+
+            if "rescan_map" in params.keys():
+                im[rescan_map[:, :, 0] == 0] = 0
+
+        if self.sleep:
+            num_pixels = np.prod(params["resolution"])
+            if "rescan_map" in params.keys():
+                rescan_frac = np.sum(params["rescan_map"]) / num_pixels
+                if num_pixels == 2048 * 1768:
+                    im_time = 1.691
+                elif num_pixels == 4096 * 3536:
+                    im_time = 4.69
+                else:
+                    raise ValueError(
+                        f"Sleep not supported for resolution {params['resolution']}"
+                    )
+            else:
+                rescan_frac = 1
+                if num_pixels == 2048 * 1768:
+                    im_time = 0.631
+                elif num_pixels == 4096 * 3536:
+                    im_time = 1.24
+                else:
+                    raise ValueError(
+                        f"Sleep not supported for resolution {params['resolution']}"
+                    )
+            im_time += dwt * num_pixels * rescan_frac
+            elapsed = (
+                time.time() - start
+            )  # remove the image loading time from the sleep time
+            if elapsed < im_time:
+                time.sleep(im_time - elapsed)
+
+        return im
+
+    @timing
+    def move(self, x, y, z=None, r=None, t=None):
+        if self.sleep:
+            time.sleep(0)
+
+    @timing
+    def auto_focus(self):
+        if self.sleep:
+            time.sleep(0)
+
+    @timing
+    def auto_contrast_brightness(self):
+        if self.sleep:
+            time.sleep(0)
+
+    @timing
+    def auto_stig(self):
+        if self.sleep:
+            time.sleep(0)
+
+    @timing
     def initialize(self):
         pass
 
@@ -210,10 +289,12 @@ class ThermoFisherVerios(BaseMicroscope):
         self.SdbMicroscopeClient = SdbMicroscopeClient
         self.sdb_enums = sdb_enums
         self.BitmapPatternDefinition = sdb_microscope_client.BitmapPatternDefinition
+        self.StreamPatternDefinition = sdb_microscope_client.StreamPatternDefinition
         self.ImagingDevice = ImagingDevice
         self.sdb_structures = sdb_structures
         self.GrabFrameSettings = GrabFrameSettings
 
+    @timing
     def initialize(self):
         self.microscope = self.SdbMicroscopeClient()
         self.connect()
@@ -223,24 +304,31 @@ class ThermoFisherVerios(BaseMicroscope):
         )
         self.microscope.beams.electron_beam.unblank()
 
+    @timing
     def close(self):
         self.disconnect()
         del self.microscope
 
+    @timing
     def connect(self):
         self.microscope.connect(self.params["ip"])
 
     def disconnect(self):
         self.microscope.disconnect()
 
+    @timing
     def prepare_acquisition(self):
-        self.auto_contrast_brightness(baseline=True)
-        self.auto_focus(baseline=True)
-        self.microscope.auto_functions.run_auto_lens_alignment()
-        self.auto_stig()
-        self.auto_focus()
-        self.auto_contrast_brightness()
+        # self.microscope.patterning.clear_patterns()
+        # self.auto_contrast_brightness(baseline=True)
+        # self.auto_focus(baseline=True)
+        # self.auto_stig(baseline=True)
+        # self.microscope.auto_functions.run_auto_lens_alignment()
+        # self.auto_stig()
+        # self.auto_focus()
+        # self.auto_contrast_brightness()
+        pass
 
+    @timing
     def auto_focus(self, baseline=False):
         baselineFocus = self.microscope.beams.electron_beam.working_distance.value
         AF_final_horizontal_field_width_focus = self.params[
@@ -262,9 +350,11 @@ class ThermoFisherVerios(BaseMicroscope):
                     0.1, 0.1, 0.8, 0.02
                 )
                 af_settings.working_distance_step = 100e-9
-                self.microscope.auto_functions.run_auto_focus(af_settings)
+                self.microscope.auto_functions.run_auto_focus(
+                    af_settings
+                )  # RunAutoFocusSettings structure item 11 does not have any value. proceeding with baseline focus
             newFocus = self.microscope.beams.electron_beam.working_distance.value
-            if (newFocus * 1000) < 5.5:  # @YARON add explanation
+            if (newFocus * 1000) < 5.5:  # @YARON add explanation CHANGE TO 6.5?
                 self.microscope.beams.electron_beam.working_distance.value = (
                     baselineFocus
                 )
@@ -274,6 +364,7 @@ class ThermoFisherVerios(BaseMicroscope):
             )
             self.microscope.beams.electron_beam.working_distance.value = baselineFocus
 
+    @timing
     def auto_contrast_brightness(self, baseline=False):
         if baseline:
             # need to run twice for @YARON add reason
@@ -288,21 +379,232 @@ class ThermoFisherVerios(BaseMicroscope):
             acb_settings.number_of_frames = 1
             self.microscope.auto_functions.run_auto_cb(acb_settings)
 
-    def auto_stig(self):
-        try:
-            AS_final_horizontal_field_width_stig = self.params[
-                "AS_final_horizontal_field_width_stig"
-            ]
-            as_settings = self.sdb_structures.RunAutoStigmatorSettings()
-            as_settings.method = self.sdb_enums.AutoFunctionMethod.ONG_ET_AL_GENERAL
-            as_settings.reduced_area = self.sdb_structures.Rectangle(0.1, 0.1, 0.8, 0.8)
-            self.microscope.beams.electron_beam.horizontal_field_width.value = (
-                AS_final_horizontal_field_width_stig
-            )
-            self.microscope.auto_functions.run_auto_stigmator(as_settings)
-        except Exception as excp:
-            warnings.warn("Auto Stig failed: " + str(excp))
+    @timing
+    def auto_stig(self, baseline=False):
+        if baseline:
+            self.microscope.auto_functions.run_auto_stigmator()
+        else:
+            try:
+                AS_final_horizontal_field_width_stig = self.params[
+                    "AS_final_horizontal_field_width_stig"
+                ]
+                as_settings = self.sdb_structures.RunAutoStigmatorSettings()
+                as_settings.method = self.sdb_enums.AutoFunctionMethod.ONG_ET_AL_GENERAL
+                as_settings.reduced_area = self.sdb_structures.Rectangle(
+                    0.1, 0.1, 0.8, 0.8
+                )
+                self.microscope.beams.electron_beam.horizontal_field_width.value = (
+                    AS_final_horizontal_field_width_stig
+                )
+                self.microscope.auto_functions.run_auto_stigmator(as_settings)
+            except Exception as excp:
+                warnings.warn("Auto Stig failed: " + str(excp))
 
+    @timing
+    def prep_get_image_large(self, params):
+        resolution = params["resolution"]
+        pixel_size = params["pixel_size"]
+        tile_size = params["tile_size"]
+        fov = (resolution[0] * pixel_size, resolution[1] * pixel_size)
+        tile_width = tile_size[0] * pixel_size
+        tile_height = tile_size[1] * pixel_size
+
+        self.microscope.beams.electron_beam.horizontal_field_width.value = fov[0]
+
+        grid = np.divide(resolution, tile_size).astype(np.uint8)
+        center_x0 = (1 / 2 - grid[0] / 2.0) * tile_width
+        center_y0 = (grid[1] / 2.0 - 1 / 2) * tile_height
+        rectangles = []
+        for n_row in range(grid[0]):
+            rectangles_row = []
+            for n_col in range(grid[1]):
+                rect = self.sdb_structures.Rectangle(
+                    left=n_col / grid[1],
+                    width=1 / grid[1],
+                    top=n_row / grid[0],
+                    height=1 / grid[0],
+                )
+                xywh = (
+                    center_x0 + tile_width * n_col,
+                    center_y0 - tile_height * n_row,
+                    tile_width,
+                    tile_height,
+                )
+                rectangles_row.append((rect, xywh))
+
+            rectangles.append(rectangles_row)
+
+        return rectangles
+
+    @timing
+    def get_image_large(self, params, idx=(0, 0)):
+        params = copy.deepcopy(params)
+        resolution = params["resolution"]
+        pixel_size = params["pixel_size"]
+        tile_size = params["tile_size"]
+        rect, xywh = params["rectangles"][idx[0]][idx[1]]
+        fov = (resolution[0] * pixel_size, resolution[1] * pixel_size)
+        center_x, center_y, width, height = xywh
+
+        # self.microscope.beams.electron_beam.scanning.resolution.value = (
+        #     "%dx%d" % tile_size
+        # )
+        if "theta" in params.keys():
+            self.microscope.beams.electron_beam.scanning.rotation.value = params[
+                "theta"
+            ]
+        self.microscope.imaging.set_active_view(1)
+        self.microscope.imaging.set_active_device(self.ImagingDevice.ELECTRON_BEAM)
+        self.microscope.beams.electron_beam.horizontal_field_width.value = fov[0]
+        self.microscope.patterning.set_default_beam_type(
+            self.sdb_enums.BeamType.ELECTRON
+        )
+        bit_depth = 16
+
+        if "rescan_map" in params.keys():
+            rescan_map = params["rescan_map"]
+            rescan_map = (rescan_map.astype(np.uint8) * 255)[:, :, None].repeat(
+                3, axis=2
+            )
+            # self.microscope.patterning.clear_patterns()
+            tools.write_im(self.params["tempfile"], rescan_map)
+            bpd = self.BitmapPatternDefinition.load(self.params["tempfile"])
+
+            pattern = self.microscope.patterning.create_bitmap(
+                center_x, center_y, width, height, params["dwell_time"], bpd
+            )
+            pattern.dwell_time = params["dwell_time"]
+            pattern.pass_count = 1
+            position_settings = self.sdb_structures.GetRtmPositionSettings(
+                None,
+                self.sdb_enums.RtmCoordinateSystem.DAC
+            )
+            self.microscope.patterning.real_time_monitor.mode = self.sdb_enums.RtmMode.HIGH_RESOLUTION
+            self.microscope.patterning.real_time_monitor.restart()
+            self.microscope.patterning.start()
+            rtm_positions = []
+            try:
+                while self.microscope.patterning.state != self.sdb_enums.PatterningState.IDLE:
+
+                    # Get RTM data
+                    rtm_data = self.microscope.patterning.real_time_monitor.get_data()
+
+                    if len(rtm_positions) == 0:
+                        # Get RTM positions only once
+                        rtm_positions = self.microscope.patterning.real_time_monitor.get_positions(position_settings)
+
+                    # If both positions and data are present, process them
+                    if len(rtm_positions) > 0 and len(rtm_data) > 0:
+                        print("collected pattern")
+                        print(rtm_data, rtm_positions)
+                        print(rtm_data.values.shape, rtm_positions.positions.shape)
+
+            finally:
+                self.microscope.patterning.stop()
+                self.microscope.patterning.real_time_monitor.stop()
+
+            return rescan
+        elif "rescan_stream" in params.keys():
+            spd = self.StreamPatternDefinition()
+            spd.points = params["rescan_stream"]
+            spd.repeat_count = 1
+            pattern = self.microscope.patterning.create_stream(0, 0, spd)
+            position_settings = self.sdb_structures.GetRtmPositionSettings(
+                None,
+                self.sdb_enums.RtmCoordinateSystem.DAC
+            )
+            self.microscope.patterning.real_time_monitor.mode = self.sdb_enums.RtmMode.HIGH_RESOLUTION
+            self.microscope.patterning.real_time_monitor.restart()
+            self.microscope.patterning.start()
+            rtm_positions = []
+            try:
+                while self.microscope.patterning.state != self.sdb_enums.PatterningState.IDLE:
+
+                    # Get RTM data
+                    rtm_data = self.microscope.patterning.real_time_monitor.get_data()
+
+                    if len(rtm_positions) == 0:
+                        # Get RTM positions only once
+                        rtm_positions = self.microscope.patterning.real_time_monitor.get_positions(position_settings)
+
+                    # If both positions and data are present, process them
+                    if len(rtm_positions) > 0 and len(rtm_data) > 0:
+                        images = get_images_from_rtm_data(rtm_data, rtm_positions)
+                        print("collected pattern")
+                        print(images[0].shape)
+
+            finally:
+                self.microscope.patterning.stop()
+                self.microscope.patterning.real_time_monitor.stop()
+
+            return images[0]
+        else:
+            settings = self.GrabFrameSettings(
+                resolution="%dx%d" % (resolution[0], resolution[1]),
+                reduced_area=rect,
+                dwell_time=params["dwell_time"],
+                bit_depth=bit_depth,
+            )
+
+            path = Path("D:\\Users\\Lab\\Documents\\SmartEM\\athey\\2025_05_12\\test")
+            path = path / f"{idx[0]}_{idx[1]}.tif"
+            path = str(path)
+            self.microscope.imaging.grab_frame_to_disk(
+                file_path=path, settings=settings
+            )
+        return path
+    
+    def make_pattern(self, idx, resolution, rescan_map, params):
+        pixel_size = params["pixel_size"]
+        fov = (resolution[0] * pixel_size, resolution[1] * pixel_size)
+        _, xywh = params["rectangles"][idx[0]][idx[1]]
+        center_x, center_y, _, _ = xywh
+
+        rescan_map = (rescan_map.astype(np.uint8) * 255)[:, :, None].repeat(
+            3, axis=2
+        )
+        tools.write_im(self.params["tempfile"], rescan_map)
+        bpd = self.BitmapPatternDefinition.load(self.params["tempfile"])
+        pattern = self.microscope.patterning.create_bitmap(
+            center_x, center_y, fov[0], fov[1], params["dwell_time"], bpd
+        )
+        pattern.dwell_time = params["slow_dwt"]
+        pattern.pass_count = 1
+        pattern.scan_type = self.sdb_enums.PatternScanType.RASTER
+
+    def rescan(self, params):
+        position_settings = self.sdb_structures.GetRtmPositionSettings(
+            None,
+            self.sdb_enums.RtmCoordinateSystem.DAC
+        )
+        self.microscope.patterning.real_time_monitor.mode = self.sdb_enums.RtmMode.HIGH_RESOLUTION
+        self.microscope.patterning.real_time_monitor.restart()
+        self.microscope.patterning.start()
+        rtm_positions = []
+        images = []
+        #time.sleep(1)
+        try:
+            while self.microscope.patterning.state != self.sdb_enums.PatterningState.IDLE:
+
+                # Get RTM data
+                rtm_data = self.microscope.patterning.real_time_monitor.get_data()
+
+                if len(rtm_positions) == 0:
+                    # Get RTM positions only once
+                    rtm_positions = self.microscope.patterning.real_time_monitor.get_positions(position_settings)
+
+                # If both positions and data are present, process them
+                if len(rtm_positions) > 0 and len(rtm_data) > 0:
+                    images += get_images_from_rtm_data(rtm_data, rtm_positions)
+
+        finally:
+            self.microscope.patterning.stop()
+            self.microscope.patterning.real_time_monitor.stop()
+
+        return images
+
+
+    @timing
     def get_image(self, params):
         with time_block("prep_get_image"):
             params = copy.deepcopy(params)
@@ -326,7 +628,6 @@ class ThermoFisherVerios(BaseMicroscope):
 
             bit_depth = 16
         if "rescan_map" in params.keys():
-
             with time_block("prep_rescan"):
                 rescan_map = params["rescan_map"]
 
@@ -346,28 +647,29 @@ class ThermoFisherVerios(BaseMicroscope):
                     loaded_tiff = AdornedImage.load(tiff_path)
                     self.microscope.imaging.set_image(loaded_tiff)
 
-                self.microscope.patterning.clear_patterns()
+                # image = self.microscope.imaging.get_image().data.copy() # not sure what this does
 
+                self.microscope.patterning.clear_patterns()
             with time_block("write_rescan_map"):
                 tools.write_im(self.params["tempfile"], rescan_map)
-
             with time_block("define_bitmap"):
                 bpd = self.BitmapPatternDefinition.load(self.params["tempfile"])
             with time_block("create_pattern"):
                 pattern = self.microscope.patterning.create_bitmap(
                     0, 0, fov[0], fov[1], params["dwell_time"], bpd
                 )
-                # Docs don't suggest a way to set the following fields in the create_bitmap method
                 pattern.dwell_time = params["dwell_time"]
                 pattern.pass_count = 1
                 pattern.scan_type = self.sdb_enums.PatternScanType.RASTER
             with time_block("rescan"):
                 self.microscope.patterning.run()
+
             with time_block("get_rescan"):
                 image = (
                     self.microscope.imaging.get_image().data.copy()
                 )  # Ask thermofisher if we can skip copy
-            assert bit_depth == 16, "print only uint16 implemented"
+                assert bit_depth == 16, "print only uint16 implemented"
+                # self.microscope.patterning.clear_patterns() # only used for visualization on microscope computer?
         else:
             with time_block("prep_fastscan"):
                 if "sleep" in self.params.keys():
@@ -384,6 +686,7 @@ class ThermoFisherVerios(BaseMicroscope):
         else:
             return image
 
+    @timing
     def move(self, x, y, z=None, r=None, t=None):
         if z is None or r is None or t is None:
             p = self.microscope.specimen.stage.current_position
@@ -397,3 +700,31 @@ class ThermoFisherVerios(BaseMicroscope):
             x=x, y=y, z=z, r=r, t=t, coordinate_system="Raw"
         )
         self.microscope.specimen.stage.absolute_move(p2)
+
+
+def get_images_from_rtm_data(rtm_data, rtm_positions):
+    result = []
+
+    for pattern in rtm_positions:
+        try:
+            # find pattern in data list for the pattern in position list
+            data_set = next(x for x in rtm_data if x.pattern_id == pattern.pattern_id)
+        except Exception:
+            continue
+        positions = (pattern.positions).astype("int")
+
+        # Prepare image for drawing
+        x_min = min(positions, key=lambda p: p[0])[0]
+        x_max = max(positions, key=lambda p: p[0])[0]
+        y_min = min(positions, key=lambda p: p[1])[1]
+        y_max = max(positions, key=lambda p: p[1])[1]
+        print(x_min, x_max, y_min, y_max)
+
+        arr = np.zeros((1768, 2048),dtype=int)
+        for i, pos in enumerate(positions):
+            new_pos = [int((p - mn) / (4 / (sz*4/2**16))) for p, mn, sz in zip(pos, [x_min, y_min], [1768, 2048])]
+            arr[new_pos[1], new_pos[0]] = data_set.values[i]
+
+        result.append(arr)
+
+    return result

@@ -5,6 +5,7 @@ import copy
 import scipy.io as sio
 
 import threading
+from tqdm import tqdm
 import multiprocessing
 import queue
 import time
@@ -132,11 +133,13 @@ class SmartEMParQ:
             for iy in range(ny):
                 coordinate = np.array([dx * ix, dy * iy]) @ R + np.array([x, y])
                 microscope.move(x=coordinate[0], y=coordinate[1], z=z, r=r, t=t)
+                if ix == 0 and iy == 0:
+                    microscope.auto_focus(baseline=True)
                 params = copy.deepcopy(params)
                 params.update({"dwell_time": params["fast_dwt"]})
                 fast_em = microscope.get_image(params=params)
                 if self.mode == "thread":
-                    self.fast_em_queue.append(fast_em)
+                    self.fast_em_queue.put(fast_em)
                 elif self.mode == "multiprocessing":
                     self.fast_em_queue.put(fast_em)
 
@@ -271,7 +274,7 @@ class SmartEMParQ:
         fast_mb_fol = os.path.join(save_dir, "fast_mb")
         os.makedirs(fast_mb_fol, exist_ok=True)
 
-        for i in range(n_targets):
+        for i in tqdm(range(n_targets), desc="Acquiring targets..."):
             fast_fol_ = os.path.join(fast_fol, "location_" + str(i).zfill(5))
             os.makedirs(fast_fol_, exist_ok=True)
             rescan_fol_ = os.path.join(rescan_fol, "location_" + str(i).zfill(5))
@@ -290,8 +293,8 @@ class SmartEMParQ:
             grid_results = self.acquire_grid(
                 xyzrt=xyzrt,
                 theta=theta,
-                nx=2,  # hard coded
-                ny=2,
+                nx=6,  # hard coded
+                ny=6,
                 dx=fov[0] * 0.8,
                 dy=fov[1] * 0.8,
                 params=params,

@@ -24,7 +24,8 @@ def timing(f):
         return wrap
 
 
-def time_block(name="Block"):
+@contextmanager
+def time_block(name="Name"):
     ts = time.time()
     try:
         yield

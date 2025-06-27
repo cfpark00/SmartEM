@@ -8,11 +8,17 @@ import numpy as np
 import warnings
 import cv2
 import time
+from scipy import optimize
 
 from smartem import tools
 
-# from .models import UNet
-from smartem.offline.train_mb_error_detector.NNtools import UNet
+from smartem.offline.train_mb_error_detector.NNtools import UNet  # UNet_16 as UNet
+
+# from smartem.online.models import UNet
+
+from connectomics.model.arch.unet import UNet2D
+
+from smartem.timing import timing
 
 
 class GetRescanMap(metaclass=abc.ABCMeta):
@@ -74,6 +80,7 @@ class GetRescanMapTest(GetRescanMap):
             self.params.update(params)
         assert self.params["type"] in self.available_types
 
+    @timing
     def get_rescan_map(self, fast_em):
         if "sleep_time" in self.params.keys():
             # simulate the time it takes to generate a rescan map
@@ -147,18 +154,42 @@ class GetRescanMapMembraneErrors(GetRescanMap):
             self.params["rescan_p_thres"] is not None
         )
 
+    @timing
     def initialize(self):
         if self.params["device"] == "auto":
             self.params["device"] = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = torch.device(self.params["device"])
+        print(f"torch device: {self.device}")
 
-        self.em2mb_net = UNet.UNet(1, 2)
-        self.em2mb_net.load_state_dict(torch.load(self.params["em2mb_net"]))
+        if "hp" in self.params["em2mb_net"]:
+            print("Loading half EM2MB model...")
+            self.em2mb_net = UNet2D(in_channels=1, out_channels=2)
+            self.em2mb_net.half()
+        else:
+            print("Loading full EM2MB model...")
+            #self.em2mb_net = UNet.UNet(1, 2)
+            self.em2mb_net = UNet2D(in_channels = 1, out_channels=2)
+
+        self.em2mb_net.load_state_dict(
+            torch.load(self.params["em2mb_net"], map_location=self.device)
+        )
         self.em2mb_net.eval()
         self.em2mb_net.to(self.device)
 
-        self.error_net = UNet.UNet(1, 2)
-        self.error_net.load_state_dict(torch.load(self.params["error_net"]))
+        if "hp" in self.params["em2mb_net"]:
+            print("Loading half ERRNet model...")
+            self.error_net = UNet2D(
+                in_channels=1, out_channels=2, filters=[32, 64, 128, 256]
+            )
+            self.error_net.half()
+        else:
+            print("Loading full ERRNet model...")
+            #self.error_net = UNet.UNet(1, 2)
+            self.error_net = UNet2D(in_channels = 1, out_channels=2, filters=[32,64,128,256])
+
+        self.error_net.load_state_dict(
+            torch.load(self.params["error_net"], map_location=self.device)
+        )
         self.error_net.eval()
         self.error_net.to(self.device)
 
@@ -166,8 +197,9 @@ class GetRescanMapMembraneErrors(GetRescanMap):
             (1, 1, 256, 256), device=self.device, dtype=torch.float32
         )
         with torch.no_grad():
-            mb = self.em2mb_net(trial_data)
-            err = self.error_net(trial_data)
+            with torch.autocast(device_type="cuda", enabled=True, dtype=torch.float16):
+                self.em2mb_net(trial_data)
+                self.error_net(trial_data)
 
         if self.params["do_clahe"]:
             self.clahe = cv2.createCLAHE(clipLimit=255 * 3.0).apply
@@ -176,31 +208,51 @@ class GetRescanMapMembraneErrors(GetRescanMap):
         del self.em2mb_net
         del self.error_net
 
+    @timing
     def get_rescan_map(self, fast_em):
         if self.params["do_clahe"]:
             fast_em = self.clahe(fast_em)
+
         mb = tools.get_prob(fast_em, self.em2mb_net)
-        error_prob = tools.get_prob(mb, self.error_net, return_dtype=np.float32)
+        mb = 1 - mb
+        print(f"Membrane prediction with all finite values: {np.isfinite(mb).all()}")
+
+        run_errnet = True
+        if run_errnet:
+            print("Running ERRNet...")
+            error_prob = tools.get_prob(mb, self.error_net, return_dtype=np.float32)
+        else:
+            print("Not running ERRNet, generating random error values...")
+            error_prob = np.random.rand(*mb.shape)
 
         if self.params["rescan_ratio"] is None:
-            rescan_map = self.pad(error_prob > self.params["rescan_p_thres"])
+            binim = (error_prob > self.params["rescan_p_thres"]).astype(np.uint8)
+            rescan_map = self.pad(binim)
         else:
-            warnings.warn("This is very slow in the current implementation.")
             rescan_ratio = self.params["rescan_ratio"]
-            imsize = np.prod(error_prob.shape)
-            n_target = int(rescan_ratio * imsize)
-            thres = np.quantile(error_prob.flatten(), 1 - rescan_ratio)
+            numel = error_prob.size
+
+            adjusterErr = lambda x: np.abs(
+                np.sum(self.pad(error_prob > x)) / numel - rescan_ratio
+            )
+
+            minimum = optimize.minimize_scalar(adjusterErr, bounds=(0, 1))
+            thres = minimum.x
+
             rescan_map = self.pad(error_prob > thres)
-            while rescan_map.sum() > n_target:
-                thres += self.params["search_step"]
-                rescan_map = self.pad(error_prob > thres)
+
+            if adjusterErr(thres) > 0.2:
+                raise ValueError(minimum)
+
         return rescan_map, {"fast_mb": mb, "error_prob": error_prob}
 
+    @timing
     def pad(self, binim):
         if self.params["pad"] == 0:
             padded = binim
         else:
-            padded = skmorph.binary_dilation(
-                binim, np.ones((self.params["pad"], self.params["pad"]))
+            footprint = np.ones(
+                (self.params["pad"], self.params["pad"]), dtype=np.uint8
             )
+            padded = cv2.dilate(binim.astype(np.uint8), footprint)
         return padded

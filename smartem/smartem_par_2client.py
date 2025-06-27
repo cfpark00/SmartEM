@@ -4,134 +4,43 @@ import os
 import copy
 import scipy.io as sio
 
-from threading import Event, Thread
+import threading
 from tqdm import tqdm
+import queue
 import time
 
 from smartem import tools
 from smartem.smartem import show_smart
 from smartem.timing import timing
 
-fast_ims = []
-rescan_masks = []
 
-
-def acquire(locs, fast_ims, sleep_time):
-    """Method used by par_test to simulate acquisition."""
-    for loc in locs:
-        fast_ims.append(loc)
-        time.sleep(sleep_time)
-
-
-def compute(locs, fast_ims, rescan_masks, sleep_time):
-    """Method used by par_test to simulate computation."""
-    counter = 0
-    while counter < len(locs):
-        if len(fast_ims) > counter:
-            im = fast_ims[counter]
-            time.sleep(sleep_time)
-            rescan_masks.append(im + 1)
-            counter += 1
-
-
-class par_test:
-    """A simple class to demonstrate parallel acquisition and computation."""
-
-    def __init__(self):
-        pass
-
-    def run(self, locs, sleep_a, sleep_b):
-        a = Thread(target=acquire, args=(locs, fast_ims, sleep_a))
-        b = Thread(
-            target=compute,
-            args=(
-                locs,
-                fast_ims,
-                rescan_masks,
-                sleep_b,
-            ),
-        )
-
-        a.start()
-        b.start()
-
-        a.join()
-        b.join()
-        return rescan_masks
-
-
-@timing
-def acquire_grid_fast(microscope, xyzrt, theta, nx, ny, dx, dy, params, fast_ems):
-    """Acquire fast EMs in a grid. Helper function for SmartEMPar.acquire_grid for parallel acquisition.
-
-    Args:
-        microscope (smartem.microscope.BaseMicroscope): Microscope object
-        xyzrt (tuple): Imaging parameters
-        theta (float): Rotation angle
-        nx (int): Number of grid points in x
-        ny (int): Number of grid points in y
-        dx (float): Grid spacing in x
-        dy (float): Grid spacing in y
-        params (dict): parameters Required: fast_dwt
-        fast_ems (list): Fast EMs, variable is shared between threads
-    """
-    R = np.array([[np.cos(theta), np.sin(theta)], [np.sin(theta), -np.cos(theta)]])
-    x, y, z, r, t = xyzrt
-
-    for ix in range(nx):
-        for iy in range(ny):
-            coordinate = np.array([dx * ix, dy * iy]) @ R + np.array([x, y])
-            microscope.move(x=coordinate[0], y=coordinate[1], z=z, r=r, t=t)
-            if ix == 0 and iy == 0:
-                microscope.auto_focus(baseline=True)
-            params = copy.deepcopy(params)
-            params.update({"dwell_time": params["fast_dwt"]})
-            fast_em = microscope.get_image(params=params)
-            fast_ems.append(fast_em)
-
-
-@timing
-def compute_grid(get_rescan_map, nx, ny, fast_ems, rescan_maps, additionals):
-    """Compute rescan maps in a grid. Helper function for SmartEMPar.acquire_grid for parallel computation.
-
-    Args:
-        get_rescan_map (smartem.get_rescan_map.GetRescanMap): Rescan map computation function.
-        nx (int): Number of grid points in x
-        ny (int): Number of grid points in y
-        fast_ems (list): Fast EMs, variable is shared between threads
-        rescan_maps (list): Rescan maps
-        additionals (list): Additional data
-    """
-    n_tiles = nx * ny
-    counter = 0
-
-    while counter < n_tiles:
-        if len(fast_ems) > counter:
-            fast_em = fast_ems[counter]
-            rescan_map, additional = get_rescan_map(fast_em)
-            rescan_maps.append(rescan_map)
-            additionals.append(additional)
-            counter += 1
-
-
-class SmartEMPar:
+class SmartEMPar2Client:
     """Parallelized version of SmartEM.
-
     Args:
     microscope: Microscope, microscope object
     get_rescan_map: GetRescanMap, get_rescan_map object
     """
 
-    def __init__(self, microscope, get_rescan_map):
-        self.microscope = microscope
+    def __init__(self, microscope_fast, microscope_slow, get_rescan_map):
+        self.microscope_fast = microscope_fast
+        self.microscope_slow = microscope_slow
         self.get_rescan_map = get_rescan_map
+
+        self.fast_em_queue = queue.Queue(maxsize=5)
+        self.rescan_mask_queue = queue.Queue()
+        self.fast_ems = []
+        self.rescan_maps = []
+        self.additionals = []
+        self.rescan_ems = []
+        self.lock = threading.Lock()
 
     @timing
     def initialize(self):
         """
-        Initialize the microscope and the get_rescan_map object.
+        Initialize the microscope and the get_rescan_map objects.
         """
-        self.microscope.initialize()
+        self.microscope_fast.initialize()
+        self.microscope_slow.initialize()
         self.get_rescan_map.initialize()
 
     @timing
@@ -139,36 +48,16 @@ class SmartEMPar:
         """
         Prepare the microscope for acquisition.
         """
-        self.microscope.prepare_acquisition()
+        self.microscope_fast.prepare_acquisition()
 
     @timing
     def close(self):
         """
         Close the microscope and the get_rescan_map object.
         """
-        self.microscope.close()
+        self.microscope_fast.close()
+        self.microscope_slow.close()
         self.get_rescan_map.close()
-
-    @timing
-    def acquire_grid_rescan(self, xyzrt, theta, nx, ny, dx, dy, params, rescan_maps):
-        R = np.array([[np.cos(theta), np.sin(theta)], [np.sin(theta), -np.cos(theta)]])
-        x, y, z, r, t = xyzrt
-
-        rescan_ems = []
-
-        for ix in range(nx):
-            for iy in range(ny):
-                rescan_map = rescan_maps[ix * nx + iy]
-                coordinate = np.array([dx * ix, dy * iy]) @ R + np.array([x, y])
-                self.microscope.move(x=coordinate[0], y=coordinate[1], z=z, r=r, t=t)
-                params = copy.deepcopy(params)
-                params.update(
-                    {"dwell_time": params["slow_dwt"], "rescan_map": rescan_map}
-                )
-                rescan_em = self.microscope.get_image(params=params)
-                rescan_ems.append(rescan_em)
-
-        return rescan_ems
 
     @timing
     def acquire_to(self, save_dir, params):
@@ -197,35 +86,95 @@ class SmartEMPar:
             print(f"Saved to {save_dir}")
 
     @timing
-    def acquire_grid(self, xyzrt, theta, nx, ny, dx, dy, params):
-        """Acquire a grid of images with params. Parallelizes fast acquisition and computation using threads.
-
+    def acquire_grid_fast(self, microscope, xyzrt, theta, nx, ny, dx, dy, params):
+        """Acquire fast EMs in a grid. Helper function for SmartEMPar.acquire_grid for parallel acquisition.
         Args:
-            xyzrt (np.ndarray): Imaging parameters
-            theta (float): rotation angle
+            microscope (smartem.microscope.BaseMicroscope): Microscope object
+            xyzrt (tuple): Imaging parameters
+            theta (float): Rotation angle
             nx (int): Number of grid points in x
             ny (int): Number of grid points in y
-            dx (float): grid spacing in x
-            dy (float): grid spacing in y
-            params (dict): parameters Required: fast_dwt, slow_dwt
+            dx (float): Grid spacing in x
+            dy (float): Grid spacing in y
+            params (dict): parameters Required: fast_dwt
+            fast_ems (list): Fast EMs, variable is shared between threads
+        """
+        R = np.array([[np.cos(theta), np.sin(theta)], [np.sin(theta), -np.cos(theta)]])
+        x, y, z, r, t = xyzrt
 
-        Returns:
-            _type_: _description_
+        for ix in range(nx):
+            for iy in range(ny):
+                coordinate = np.array([dx * ix, dy * iy]) @ R + np.array([x, y])
+                microscope.move(x=coordinate[0], y=coordinate[1], z=z, r=r, t=t)
+                if ix == 0 and iy == 0:
+                    microscope.auto_focus(baseline=True)
+                params = copy.deepcopy(params)
+                params.update({"dwell_time": params["fast_dwt"]})
+                fast_em = microscope.get_image(params=params)
+                self.fast_em_queue.put(fast_em)
+
+        for _ in range(nx * ny):
+            (ix, iy), rescan_map = self.rescan_mask_queue.get()
+            coordinate = np.array([dx * ix, dy * iy]) @ R + np.array([x, y])
+            self.microscope.move(x=coordinate[0], y=coordinate[1], z=z, r=r, t=t)
+            params = copy.deepcopy(params)
+            params.update({"dwell_time": params["slow_dwt"], "rescan_map": rescan_map})
+            rescan_em = self.microscope.get_image(params=params)
+            with self.lock:
+                self.rescan_ems.append(rescan_em)
+            self.rescan_mask_queue.task_done()
+
+    @timing
+    def compute_grid(self, microscope, get_rescan_map, nx, ny):
+        """Compute rescan maps in a grid. Helper function for SmartEMPar.acquire_grid for parallel computation.
+                Args:
+                    get_rescan_map (smartem.get_rescan_map.GetRescanMap): Rescan map computation function.
+                    nx (int): Number of grid points in x
+                    ny (int): Number of grid points in y
+                    fast_ems (list): Fast EMs, variable is shared between threads
+                    rescan_maps (list): Rescan maps
+                    additionals (list): Additional data
+        """
+        for ix in range(nx):
+            for iy in range(ny):
+                fast_em = self.fast_em_queue.get()
+                rescan_map, additional = get_rescan_map(fast_em)
+
+                self.rescan_mask_queue.put(((ix, iy), rescan_map))
+
+                with self.lock:
+                    self.fast_ems.append(fast_em)
+                    self.rescan_maps.append(rescan_map)
+                    self.additionals.append(additional)
+                self.fast_em_queue.task_done()
+
+    @timing
+    def acquire_grid(self, xyzrt, theta, nx, ny, dx, dy, params):
+        """Acquire a grid of images with params. Parallelizes fast acquisition and computation using threads.
+                Args:
+                    xyzrt (np.ndarray): Imaging parameters
+                    theta (float): rotation angle
+                    nx (int): Number of grid points in x
+                    ny (int): Number of grid points in y
+                    dx (float): grid spacing in x
+                    dy (float): grid spacing in y
+                    params (dict): parameters Required: fast_dwt, slow_dwt
+                Returns:
+                    _type_: _description_
         """
         params["theta"] = theta
 
         # compute rescan masks in parallel with acquisition
-        fast_ems = []
-        rescan_maps = []
-        additionals = []
 
-        a = Thread(
-            target=acquire_grid_fast,
-            args=(self.microscope, xyzrt, theta, nx, ny, dx, dy, params, fast_ems),
+        a = threading.Thread(
+            target=self.acquire_grid_fast,
+            daemon=True,
+            args=(self.microscope_fast, xyzrt, theta, nx, ny, dx, dy, params),
         )
-        b = Thread(
-            target=compute_grid,
-            args=(self.get_rescan_map, nx, ny, fast_ems, rescan_maps, additionals),
+        b = threading.Thread(
+            target=self.compute_grid,
+            daemon=True,
+            args=(self.microscope_slow, self.get_rescan_map, nx, ny),
         )
 
         a.start()
@@ -233,10 +182,10 @@ class SmartEMPar:
         a.join()
         b.join()
 
-        # rescan
-        rescan_ems = self.acquire_grid_rescan(
-            xyzrt, theta, nx, ny, dx, dy, params, rescan_maps
-        )
+        fast_ems = self.fast_ems
+        rescan_maps = self.rescan_maps
+        additionals = self.additionals
+        rescan_ems = self.rescan_ems
 
         if "verbose" in params and params["verbose"] > 0:
             print(f"Acquired fast_em, rescan_em, rescan_map")
@@ -274,15 +223,21 @@ class SmartEMPar:
     @timing
     def acquire_many_grids(self, coordinates, params, save_dir):
         """
-        Acquire many grids with coordinates and params and save to save_dir.
+                Acquire many grids with coordinates and params and save to save_dir.
+        <<<<<<< HEAD
+        =======
 
-        Args:
-        coordinates: np.ndarray, (n, 5) x, y, z, r, t
-        params: dict, imaging parameters
-        save_dir: str, directory to save
+        >>>>>>> main
+                Args:
+                coordinates: np.ndarray, (n, 5) x, y, z, r, t
+                params: dict, imaging parameters
+                save_dir: str, directory to save
+        <<<<<<< HEAD
+        =======
 
-        Returns:
-        None
+        >>>>>>> main
+                Returns:
+                None
         """
         n_targets = len(coordinates)
 
@@ -315,8 +270,8 @@ class SmartEMPar:
             grid_results = self.acquire_grid(
                 xyzrt=xyzrt,
                 theta=theta,
-                nx=4,  # hard coded
-                ny=4,
+                nx=6,  # hard coded
+                ny=6,
                 dx=fov[0] * 0.8,
                 dy=fov[1] * 0.8,
                 params=params,
