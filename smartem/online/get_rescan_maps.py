@@ -167,8 +167,8 @@ class GetRescanMapMembraneErrors(GetRescanMap):
             self.em2mb_net.half()
         else:
             print("Loading full EM2MB model...")
-            self.em2mb_net = UNet.UNet(1, 2)
-            # self.em2mb_net = UNet2D(in_channels = 1, out_channels=2)
+            #self.em2mb_net = UNet.UNet(1, 2)
+            self.em2mb_net = UNet2D(in_channels = 1, out_channels=2)
 
         self.em2mb_net.load_state_dict(
             torch.load(self.params["em2mb_net"], map_location=self.device)
@@ -184,8 +184,8 @@ class GetRescanMapMembraneErrors(GetRescanMap):
             self.error_net.half()
         else:
             print("Loading full ERRNet model...")
-            self.error_net = UNet.UNet(1, 2)
-            # self.error_net = UNet2D(in_channels = 1, out_channels=2, filters=[32,64,128,256])
+            #self.error_net = UNet.UNet(1, 2)
+            self.error_net = UNet2D(in_channels = 1, out_channels=2, filters=[32,64,128,256])
 
         self.error_net.load_state_dict(
             torch.load(self.params["error_net"], map_location=self.device)

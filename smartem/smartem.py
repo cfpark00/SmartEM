@@ -63,7 +63,8 @@ class SmartEM:
         params = copy.deepcopy(params)
         params.update({"dwell_time": params["fast_dwt"]})
         fast_em = self.microscope.get_image(params=params)
-        # return fast_em, 0*fast_em, 0*fast_em, {"fast_mb": 0*fast_em}
+        # traditional
+        #return fast_em, 0*fast_em, 0*fast_em, {"fast_mb": 0*fast_em}
         rescan_map, additional = self.get_rescan_map(fast_em)
         params.update({"dwell_time": params["slow_dwt"], "rescan_map": rescan_map})
         rescan_em = self.microscope.get_image(params=params)
@@ -279,11 +280,11 @@ class SmartEM:
             theta = params["scan_rotations"][i]
 
             fov = np.array(params["resolution"]) * params["pixel_size"]
-            grid_results = self.acquire_grid_large(
+            grid_results = self.acquire_grid(
                 xyzrt=xyzrt,
                 theta=theta,
-                nx=2,  # hardcoded
-                ny=2,
+                nx=6,  # hardcoded
+                ny=6,
                 dx=fov[0] * 0.8,
                 dy=fov[1] * 0.8,
                 params=params,

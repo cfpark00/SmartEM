@@ -25,6 +25,20 @@ from smartem.online import microscope, get_rescan_maps
 # python examples\smart_em_script.py --get-rescan-map-type membrane_errors --target-mat examples\w03_imaging_params_single.json --params-path examples\default_smartem_params_pres.json --microscope-type verios
 # python examples\smart_em_script.py --get-rescan-map-type membrane_errors --target-mat examples\nonwafer_imaging_params_1.json --params-path examples\default_smartem_params_pres.json --microscope-type verios
 
+# Editting
+# smart_em_script.py
+# - network param paths
+# - serial/parallel argument
+# smartem.py
+# - no. tiles in grid
+# - traditional early stop
+# get_rescan_maps.py
+# - unet class type
+# - autocast
+# tools.py
+# - autocast
+# config jsons for smartem and imaging
+
 default_target_mat = "D:\\Users\\Lab\\Documents\\SmartEM\\data\\Mouse_NK1\\wafer_calibration\\w03_1mm_nov20.mat"
 
 
@@ -87,8 +101,8 @@ def get_get_rescan_map(
     elif get_rescan_map_type == "membrane_errors":
         # This is the get_rescan_map using ML
         params = {
-            "em2mb_net": "./pretrained_models/em2mb_best.pth",
-            "error_net": "./pretrained_models/error_best.pth",
+            "em2mb_net": "./pretrained_models/em2mb_fp_model.pth",
+            "error_net": "./pretrained_models/error_fp.pth",
             "device": "auto",
             "pad": 40,
             "rescan_p_thres": 0.1,
