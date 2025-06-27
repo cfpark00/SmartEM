@@ -197,7 +197,7 @@ class GetRescanMapMembraneErrors(GetRescanMap):
             (1, 1, 256, 256), device=self.device, dtype=torch.float32
         )
         with torch.no_grad():
-            with torch.autocast(device_type="cuda", enabled=False, dtype=torch.float16):
+            with torch.autocast(device_type="cuda", enabled=True, dtype=torch.float16):
                 self.em2mb_net(trial_data)
                 self.error_net(trial_data)
 

@@ -99,7 +99,7 @@ def get_prob(image, net, return_dtype=np.uint8, check_nans=True):
             for name, param in net.named_buffers():
                 if torch.isnan(param).any():
                     raise ValueError()
-        with torch.autocast(device_type="cuda", enabled=False, dtype=torch.float16):
+        with torch.autocast(device_type="cuda", enabled=True, dtype=torch.float16):
             mask_logits = net(image_torch)
 
         if check_nans and torch.any(torch.isnan(mask_logits)):
